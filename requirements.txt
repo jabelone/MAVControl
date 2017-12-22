@@ -1,0 +1,11 @@
+Flask==0.12.2
+Flask-Login==0.4.0
+Flask-Session==0.3.1
+Flask_SocketIO
+Jinja2==2.7.3
+python-engineio
+python-socketio
+Werkzeug==0.12.2
+pymavlink
+future
+eventlet
