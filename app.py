@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 # This file was initially based on an example file from the Flask-SocketIO project.
 from threading import Lock
-from flask import Flask, render_template, session, request
+from flask import Flask, render_template, session, request, url_for
 from flask_socketio import SocketIO, emit
-import json
+import json, sys
 from pymavlink import mavutil
 from pymavlink.dialects.v10 import ardupilotmega as mavlink1
 from pymavlink.dialects.v20 import ardupilotmega as mavlink2
 
 
 class Settings:
+    page_name = "MAVControl Pre-Alpha"
     password = 'secret'
     connection_string = 'udp:127.0.0.1:14550'
     namespace = "/MAVControl"
@@ -18,6 +19,7 @@ class Settings:
     known_packets = json.load(open(known_packets_file))
     async_mode = None
 
+packet_count = 0
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = Settings.password
@@ -57,6 +59,7 @@ def cb(a, b=None, c=None, d=None):
     """This callback runs every time we get a new mavlink packet."""
     # This is undocumented so not 100% this is the correct usage.
     # print("cb: " + str(a)) # Useful for debugging purposes
+    socketio.emit('my_response', {'data': str(a),}, namespace=Settings.namespace)
     pass
 
 
@@ -67,7 +70,7 @@ mav.mav.set_callback(cb)
 def mavlink_thread():
     """Used to process new mavlink messages"""
     while True:
-        socketio.sleep(0.0001)
+        socketio.sleep(0.0000000000001)
         mav.recv_match()
 
 
@@ -85,7 +88,8 @@ def heartbeat_thread():
 
 @app.route('/')
 def index():
-    return render_template('index.html', async_mode=socketio.async_mode)
+    return render_template('index.html', async_mode=socketio.async_mode, page_name=Settings.page_name,
+                           python_version=sys.version)
 
 
 @socketio.on('my_event', namespace=Settings.namespace)
