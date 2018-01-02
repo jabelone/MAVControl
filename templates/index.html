@@ -7,13 +7,17 @@
     <script type="text/javascript" src="/static/js/jquery-3.2.1.min.js"></script>
     <script type="text/javascript" src="/static/js/socket.io.min.js"></script>
     <script type="text/javascript" src="/static/js/main.js" charset="utf-8"></script>
+    <script async defer
+            src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB4yhwb2dk-UFfnBoV67yRIW0GhKvzFvQ4&callback=initMap">
+    </script>
 
     <!-- CSS  -->
     <link href="/static/css/materialize.css" type="text/css" rel="stylesheet" media="screen,projection"/>
     <link href="/static/css/style.css" type="text/css" rel="stylesheet" media="screen,projection"/>
 </head>
 <body>
-<nav class="light-blue lighten-1" role="navigation">
+
+<nav class="navigation blue darken-2" role="navigation">
     <div class="nav-wrapper container">
         <span id="logo-container" class="brand-logo">
             {% if page_name %}{{ page_name }}{% else %}MAVControl{% endif %}
@@ -28,38 +32,73 @@
         <a href="#" data-activates="nav-mobile" class="button-collapse"><i class="material-icons">menu</i></a>
     </div>
 </nav>
-<div class="section no-pad-bot" id="index-banner">
-    <div class="container">
-        <!--<div class="row center">
-            <h5 class="header col s12 light">A modern responsive front-end framework based on Material Design</h5>
-        </div>-->
-        <div class="row center">
-            <a href="http://materializecss.com/getting-started.html" id="download-button"
-               class="btn-large waves-effect waves-light orange">Get Started</a>
-            <h3>Send:</h3>
-            <form id="emit" method="POST" action='#'>
-                <input type="text" name="emit_data" id="emit_data" placeholder="Message">
-                <input type="submit" class="btn-large waves-effect waves-light orange" value="Send Message">
-            </form>
-            <h3>Received Socket Messages:</h3>
-            <div id="log"></div>
+
+<!--<div class="row center">
+    <h5 class="header col s12 light">A modern responsive front-end framework based on Material Design</h5>
+</div>-->
+<div id="main-row" class="no-padding row center">
+
+    <div id="hud-panel" class="no-padding grey lighten-2 col">
+        <div id="hud-row-upper" class="green lighten-2 row center">
+            <div id="hud-panel-contents" class="col s12 m12 l12">
+                <!-- HUD panel with artificial horizon etc -->
+
+            </div>
         </div>
-        <br><br>
+        <div id="hud-row-lower" class="no-padding row center">
+            <div id="control-panel-contents" class="no-padding col s12 m12 l12">
+                <!-- HUD panel with controls/mode buttons etc -->
+                <div class="card-tabs">
+                    <ul class="tabs tabs-fixed-width">
+                        <li class="tab"><a class="active" href="#actions_tab">Actions</a></li>
+                        <li class="tab"><a href="#gauges_tab">Gauges</a></li>
+                        <li class="tab"><a href="#status_tab">Status</a></li>
+                        <li class="tab"><a href="#servo_tab">Servo</a></li>
+                        <li class="tab"><a href="#messages_tab">Messages</a></li>
+                    </ul>
+                </div>
+                <div class="card-content grey lighten-4">
+                    <div id="actions_tab">ACTIONS</div>
+                    <div id="gauges_tab">GAUGES</div>
+                    <div id="status_tab">STATUS</div>
+                    <div id="servo_tab">SERVO</div>
+                    <div id="messages_tab">MESSAGES</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="map-panel" class="no-padding green darken-1">
+        <div id="map-row-upper" class="row center">
+            <div id="map" class="col s12 m12 l12">
+                <!-- Main panel with map-->
+                <!-- The google maps API uses this div, don't put any content in it -->
+            </div>
+        </div>
+        <div id="map-row-lower" class="row center">
+            <div id="map-bottom-contents" class="col s12 m12 l12">
+                <!-- Bottom panel with GPS info etc -->
+                <!-- not used currently -->
+            </div>
+        </div>
     </div>
 </div>
 
-<footer class="page-footer orange">
+<footer class="page-footer blue darken-2">
     <div class="container">
         <div class="row">
-            <div class="col l6 s12">
-                Made by <a class="orange-text text-lighten-3" target="_blank" href="https://jaimyn.com.au">Jaimyn
-                Mayer</a> and released under GPLv3.
+            <div class="col l3 m6 s12">
+                Made by <a id="copyright" class="white-text" target="_blank" href="https://jaimyn.com.au">Jaimyn
+                Mayer</a>
             </div>
-            <div class="col l3 s12">
+            <div class="col l2 m4 s12">
                 <a class="white-text modal-trigger" href="#modal1">About</a>
             </div>
-            <div class="col l3 s12">
+            <div class="col l3 m7 s12">
                 Backend Latency: <b><span id="footer-ping-pong"></span>ms</b>
+            </div>
+            <div class="col l4 m7 s12">
+                Last Vehicle Heartbeat: <b><span id="footer-heartbeat"></span></b>
             </div>
         </div>
     </div>
@@ -96,14 +135,25 @@
         </div>
     </div>
 
+    <!-- About Vehicle Modal-->
+    <div id="modal_vehicle" class="modal">
+        <div class="modal-content black-text">
+            <h4>Connected vehicle info:</h4>
+            Auto Pilot Type: <span id="vehicle-info-type"></span>
+            </p>
+        </div>
+        <div class="modal-footer">
+            <a href="#!" class="modal-action modal-close waves-effect waves-green btn-flat">Close</a>
+        </div>
+    </div>
+
     <!-- Connection Settings Modal-->
     <div id="modal_conn_settings" class="modal">
         <div class="modal-content black-text">
             <h4>Connection Settings</h4>
-            <p>Please specify an IP and port to bind to - ensure remote end is already sending data. At the moment UDP
-                is supported.
+            <p>Please specify a UDP IP and port to bind to. As soon as data is received we'll connect to the MAV.
             <div class="chip">
-                <span class="orange-text text-darken-2">To apply, you must restart the backend!</span>
+                <span class="orange-text text-darken-2">The backend will restart to apply changes when you click save!</span>
                 <i class="close material-icons">close</i>
             </div>
 
@@ -112,12 +162,13 @@
                     <div class="row">
                         <div class="input-field col s8">
                             <i class="input-icon material-icons prefix">settings_ethernet</i>
-                            <input id="icon_prefix" type="text" class="validate" required pattern="((^|\.)((25[0-5])|(2[0-4]\d)|(1\d\d)|([1-9]?\d))){4}$">
-                            <label for="icon_prefix">IP Address</label>
+                            <input id="update_connection_settings_ip" type="text" class="validate" required
+                                   pattern="((^|\.)((25[0-5])|(2[0-4]\d)|(1\d\d)|([1-9]?\d))){4}$">
+                            <label for="update_connection_settings_ip">IP Address</label>
                         </div>
                         <div class="input-field col s4">
-                            <input id="icon_prefix" type="text" class="validate">
-                            <label for="icon_prefix">Port Number</label>
+                            <input id="update_connection_settings_port" type="text" class="validate">
+                            <label for="update_connection_settings_port">Port Number</label>
                         </div>
                     </div>
                 </form>
@@ -127,7 +178,9 @@
         </div>
         <div class="modal-footer">
             <a href="#!" class="modal-action modal-close waves-effect waves-green btn-flat">Close</a>
-            <a href="#!" class="waves-effect waves-light btn"><i class="material-icons right">save</i>Save</a>
+            <a id="update_connection_settings" href="#!" class="waves-effect waves-light btn">
+                <i id="update_connection_settings" class="material-icons right">save</i>Save
+            </a>
         </div>
     </div>
 

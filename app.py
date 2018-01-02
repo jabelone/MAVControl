@@ -3,27 +3,19 @@
 from threading import Lock
 from flask import Flask, render_template, session, request, url_for
 from flask_socketio import SocketIO, emit
-import json, sys
+import sys, os, MAVControlSettings
 from pymavlink import mavutil
+import time
 from pymavlink.dialects.v10 import ardupilotmega as mavlink1
 from pymavlink.dialects.v20 import ardupilotmega as mavlink2
+import common_state as cs
+import handle_packets as handle
+cs.settings = MAVControlSettings.Settings()
 
-
-class Settings:
-    page_name = "MAVControl Pre-Alpha"
-    password = 'secret'
-    connection_string = 'udp:127.0.0.1:14550'
-    namespace = "/MAVControl"
-    known_packets_file = "known_packets.json"
-    
-    known_packets = json.load(open(known_packets_file))
-    async_mode = None
-
-packet_count = 0
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = Settings.password
-socketio = SocketIO(app, async_mode=Settings.async_mode)
+app.config["SECRET_KEY"] = cs.settings.Frontend.password
+cs.socketio = SocketIO(app, async_mode=cs.settings.Sockets.async_mode)
 
 
 # These threads are needed to keep everything running smoothly. The "mavlink" thread runs recv_match() very quickly in
@@ -45,22 +37,33 @@ class Threads:
 threads = Threads
 
 # Connect to our MAV
-mav = mavutil.mavlink_connection(Settings.connection_string,)
+conn_string = "udp:" + cs.settings.MavConnection.ip + ":" + cs.settings.MavConnection.port
+mav = mavutil.mavlink_connection(conn_string,)
+print("Attempting connection to: " + conn_string)
 
 
 def wait_for_heartbeat(mav_connection):
     """Wait for a heartbeat packet so we know the target sysid"""
     print("Waiting for a heartbeat packet")
-    mav_connection.wait_heartbeat()
+    mav_connection.wait_heartbeat(blocking=False)
     print("Heartbeat from APM (system %u component %u)" % (mav_connection.target_system, mav_connection.target_system))
+    cs.last_heartbeat = time.localtime()
 
 
-def cb(a, b=None, c=None, d=None):
+def cb(packet, b=None, c=None, d=None):
     """This callback runs every time we get a new mavlink packet."""
-    # This is undocumented so not 100% this is the correct usage.
+    # This is undocumented so not 100% sure if this is the correct usage.
     # print("cb: " + str(a)) # Useful for debugging purposes
-    socketio.emit('my_response', {'data': str(a),}, namespace=Settings.namespace)
-    pass
+    # Next line will send all mavlink packets to the frontend
+    # socketio.emit('my_response', {'data': str(packet), }, namespace=cs.settings.Sockets.namespace)
+
+    #print(packet.get_type())
+
+    if packet.get_type() == "HEARTBEAT":
+        handle.heartbeat(packet)
+
+    if packet.get_type() == "GLOBAL_POSITION_INT":
+        handle.location(packet)
 
 
 wait_for_heartbeat(mav)
@@ -70,57 +73,62 @@ mav.mav.set_callback(cb)
 def mavlink_thread():
     """Used to process new mavlink messages"""
     while True:
-        socketio.sleep(0.0000000000001)
+        cs.socketio.sleep(0.0000000000001)
         mav.recv_match()
 
 
 def heartbeat_thread():
     """Sends a 1Hz heartbeat packet, etc."""
     # TODO: Sending heartbeat not implemented yet
-    count = 0
     while True:
-        socketio.sleep(1)
-        socketio.emit('my_response',
-                      {'data': 'Server generated event', 'count': count},
-                      namespace=Settings.namespace)
-        count += 1
+        cs.socketio.sleep(1)
+        cs.socketio.emit('heartbeat',
+                      str(time.strftime('%H:%M:%S', cs.last_heartbeat)),
+                      namespace=cs.settings.Sockets.namespace)
+        print("Type: " + str(cs.ap_type) + " Heartbeat: " + str(time.strftime('%Y-%m-%dT%H:%M:%SZ', cs.last_heartbeat)))
 
 
 @app.route('/')
 def index():
-    return render_template('index.html', async_mode=socketio.async_mode, page_name=Settings.page_name,
+    return render_template('index.html', async_mode=cs.socketio.async_mode, page_name=cs.settings.Frontend.name,
                            python_version=sys.version)
 
 
-@socketio.on('my_event', namespace=Settings.namespace)
+@cs.socketio.on('update_connection_settings', namespace=cs.settings.Sockets.namespace)
+def update_connection_settings(ip, port):
+    cs.settings.MavConnection.ip = ip
+    cs.settings.MavConnection.port = port
+    cs.settings.save()
+    cs.socketio.emit('conn_update_success', namespace=cs.settings.Sockets.namespace)
+    cs.socketio.sleep(0.1)
+    os.execv(__file__, sys.argv)
+
+
+@cs.socketio.on('my_event', namespace=cs.settings.Sockets.namespace)
 def test_message(message):
     session['receive_count'] = session.get('receive_count', 0) + 1
     emit('my_response',
          {'data': message['data'], 'count': session['receive_count']})
 
 
-@socketio.on('my_ping', namespace=Settings.namespace)
+@cs.socketio.on('my_ping', namespace=cs.settings.Sockets.namespace)
 def ping_pong():
     emit('my_pong')
 
 
-@socketio.on('connect', namespace=Settings.namespace)
+@cs.socketio.on('connect', namespace=cs.settings.Sockets.namespace)
 def test_connect():
     global threads
+
     with threads.mavlink_lock:
         if threads.mavlink_thread is None:
-            threads.mavlink_thread = socketio.start_background_task(target=mavlink_thread)
+            threads.mavlink_thread = cs.socketio.start_background_task(target=mavlink_thread)
     with threads.heartbeat_lock:
         if threads.heartbeat_thread is None:
-            threads.heartbeat_thread = socketio.start_background_task(target=heartbeat_thread)
+            threads.heartbeat_thread = cs.socketio.start_background_task(target=heartbeat_thread)
 
     emit('my_response', {'data': 'Connected', 'count': 0})
 
 
-@socketio.on('disconnect', namespace=Settings.namespace)
-def test_disconnect():
-    print('Client disconnected', request.sid)
-
-
 if __name__ == '__main__':
-    socketio.run(app, debug=True)
+    cs.socketio.run(app, debug=True)

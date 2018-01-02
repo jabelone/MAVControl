@@ -1,0 +1,18 @@
+{
+    "MavConnection": {
+        "ip": "127.0.0.1",
+        "port": "14550",
+        "mavlink_version": "2"
+    },
+    "Sockets": {
+        "namespace": "/MAVControl",
+        "async_mode": null
+    },
+    "Frontend": {
+        "name": "MAVControl Pre-Alpha",
+        "password": "secret"
+    },
+    "Backend": {
+        "known_mavlink_packets_file": "known_packets.json"
+    }
+}

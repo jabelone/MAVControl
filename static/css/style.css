@@ -6,45 +6,99 @@
  * Made By MaterializeCSS.com
  */
 
+#hud-panel-contents {
+    height: 50vh;
+}
+
+a[href^="http://maps.google.com/maps"]{display:none !important}
+a[href^="https://maps.google.com/maps"]{display:none !important}
+
+.gmnoprint a, .gmnoprint span, .gm-style-cc {
+    display:none;
+}
+.gmnoprint div {
+    background:none !important;
+}
+
+#main-row {
+    min-height: 88vh;
+}
+
+#map-row-upper, #map-panel {
+    height: 100%;
+}
+
+#hud-panel {
+    width: 40vw;
+}
+
+#map-panel {
+    width: 60vw;
+    float: right;
+}
+
+#map {
+    position: absolute;
+    top: 7vh;
+    bottom: 5vh;
+    width: 60vw;
+}
+.navigation {
+    min-height: 7vh;
+}
+
+#map-bottom-contents {
+}
+
+#main-row, #map-row-upper, #map-panel {
+    margin: 0;
+}
+
+#copyright {
+    text-decoration: underline;
+}
+
 .input-icon {
-  padding-top: 8px;
+    padding-top: 8px;
 }
 
 .page-footer {
-  padding: 10px;
+    padding: 10px;
+    min-height: 5vh;
 }
 
 .container .row {
-  margin-bottom: 0;
+    margin-bottom: 0;
 }
 
 .icon-block {
-  padding: 0 15px;
+    padding: 0 15px;
 }
+
 .icon-block .material-icons {
-	font-size: inherit;
+    font-size: inherit;
 }
 
 /* fallback */
 @font-face {
-  font-family: 'Material Icons';
-  font-style: normal;
-  font-weight: 400;
-  src: url(/static/fonts/mdi.woff2) format('woff2');
+    font-family: 'Material Icons';
+    font-style: normal;
+    font-weight: 400;
+    src: url(/static/fonts/mdi.woff2) format('woff2');
 }
 
 .material-icons {
-  font-family: 'Material Icons';
-  font-weight: normal;
-  font-style: normal;
-  font-size: 24px;
-  line-height: 1;
-  letter-spacing: normal;
-  text-transform: none;
-  display: inline-block;
-  white-space: nowrap;
-  word-wrap: normal;
-  direction: ltr;
-  -webkit-font-feature-settings: 'liga';
-  -webkit-font-smoothing: antialiased;
+    font-family: 'Material Icons';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 24px;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-feature-settings: 'liga';
+    -webkit-font-smoothing: antialiased;
 }
