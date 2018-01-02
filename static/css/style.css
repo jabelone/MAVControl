@@ -6,6 +6,14 @@
  * Made By MaterializeCSS.com
  */
 
+#hud-row-lower {
+    margin-bottom: 0;
+}
+
+#actions_tab {
+    padding: 10px;
+}
+
 #hud-panel-contents {
     height: 50vh;
 }

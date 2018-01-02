@@ -47,7 +47,7 @@ function moveMarker() {
     locationHistory[0].lat += deltaLat;
     locationHistory[0].lng += deltaLng;
     var currentLocation = new google.maps.LatLng(locationHistory[0].lat, locationHistory[0].lng);
-    marker.setPosition(currentLocation);
+    //marker.setPosition(currentLocation);
     map.setCenter(currentLocation);
     if (i !== numDeltas) {
         i++;
@@ -86,6 +86,7 @@ function moveMarker() {
 
             // Set our rotation
             icon.rotation = Math.round(heading);
+            marker.setPosition(currentLocation);
 
             // Update our marker location
             transition(lat, lng);
