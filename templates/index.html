@@ -36,7 +36,7 @@
 <!--<div class="row center">
     <h5 class="header col s12 light">A modern responsive front-end framework based on Material Design</h5>
 </div>-->
-<div id="main-row" class="no-padding row center">
+<div id="main-row" class="grey lighten-4 no-padding row center">
 
     <div id="hud-panel" class="no-padding grey lighten-2 col">
         <div id="hud-row-upper" class="green lighten-2 row center">
@@ -45,43 +45,131 @@
 
             </div>
         </div>
-        <div id="hud-row-lower" class="no-padding row center">
+        <div id="hud-row-lower" class="grey lighten-4 no-padding row center">
             <div id="control-panel-contents" class="no-padding col s12 m12 l12">
                 <!-- HUD panel with controls/mode buttons etc -->
                 <div class="card-tabs">
                     <ul class="tabs tabs-fixed-width">
                         <li class="tab"><a class="active" href="#actions_tab">Actions</a></li>
                         <li class="tab"><a href="#gauges_tab">Gauges</a></li>
-                        <li class="tab"><a href="#status_tab">Status</a></li>
                         <li class="tab"><a href="#servo_tab">Servo</a></li>
                         <li class="tab"><a href="#messages_tab">Messages</a></li>
                     </ul>
                 </div>
                 <div class="card-content grey lighten-4">
                     <div id="actions_tab">
-                        <div class="row">
-                            <div class="col s12 m4 l3">
-                                1
+                        <div id="actions_row_1" class="row">
+                            <div class="input-field col s12 m4 l4">
+                                <select>
+                                    <optgroup label="In Flight">
+                                        <option value="trigger_camera">Trigger Camera</option>
+                                        <optgroup label="Pre Flight">
+                                            <option value="pre_cal">Pre-Flight Calibration</option>
+                                            <option disabled value="pre_reboot">Pre-Flight Reboot</option>
+                                        </optgroup>
+                                </select>
+                                <!--<a class="waves-effect waves-light btn">button</a>-->
                             </div>
                             <div class="col s12 m4 l2">
-                                2
+                                <a class="waves-effect blue waves-light btn">Do Action</a>
                             </div>
                             <div class="col s12 m4 l2">
-                                3
+                                <div class="input-field">
+                                    <input placeholder="20 m/s" id="do_change_speed" type="text" class="validate">
+                                </div>
+                            </div>
+                            <div class="col s12 m4 l4">
+                                <a class="waves-effect blue waves-light btn">Change Speed</a>
+                            </div>
+
+                        </div>
+                        <div id="actions_row_2" class="row">
+                            <div class="input-field col s12 m4 l4">
+                                <select>
+                                    <optgroup label="Target Waypoint">
+                                        <option value="0">0</option>
+                                </select>
+                                <!--<a class="waves-effect waves-light btn">button</a>-->
                             </div>
                             <div class="col s12 m4 l2">
-                                4
+                                <a class="waves-effect blue waves-light btn">Set WP</a>
                             </div>
-                            <div class="col s12 m4 l3">
-                                5
+                            <div class="col s12 m4 l2">
+                                <div class="input-field">
+                                    <input placeholder="50 m" id="do_change_altitude" type="text" class="validate">
+                                </div>
+                            </div>
+                            <div class="col s12 m4 l4">
+                                <a class="waves-effect blue waves-light btn">Change Alt</a>
+                            </div>
+
+                        </div>
+                        <div id="actions_row_3" class="row">
+                            <div class="input-field col s12 m4 l4">
+                                <select>
+                                    <optgroup label="Autonomous">
+                                        <option value="auto">Auto</option>
+                                        <option value="rtl">RTL</option>
+                                        <option value="loiter">Loiter</option>
+                                        <optgroup label="Manual">
+                                            <option value="fbwa">FBWA</option>
+                                            <option value="fbwa">Manual</option>
+                                </select>
+                                <!--<a class="waves-effect waves-light btn">button</a>-->
+                            </div>
+                            <div class="col s12 m4 l2">
+                                <a class="waves-effect blue waves-light btn">Set Mode</a>
+                            </div>
+                            <div class="col s12 m4 l2">
+                                <div class="input-field">
+                                    <input placeholder="50 m" id="do_change_altitude" type="text" class="validate">
+                                </div>
+                            </div>
+                            <div class="col s12 m4 l4">
+                                <a class="waves-effect blue waves-light btn">Save Loiter Radius</a>
+                            </div>
+
+                        </div>
+                        <div id="actions_row_4" class="row">
+                            <div class="col s12 m4 l2">
+                                <a class="waves-effect blue waves-light btn">Auto</a>
+                            </div>
+                            <div class="col s12 m4 l2">
+                                <a class="waves-effect blue waves-light btn">RTL</a>
+                            </div>
+                            <div class="col s12 m4 l2">
+                                <a class="waves-effect blue waves-light btn">Loiter</a>
+                            </div>
+                            <div class="col s12 m4 l2">
+                                <!--<a class="waves-effect blue waves-light btn"></a>-->
+                            </div>
+                            <div class="col s12 m4 l2">
+                                <a class="waves-effect orange waves-light btn">ARM</a>
+                            </div>
+                            <div class="col s12 m4 l2">
+                                <a disabled class="waves-effect green waves-light btn">DISARM</a>
                             </div>
 
                         </div>
                     </div>
-                    <div id="gauges_tab">GAUGES</div>
-                    <div id="status_tab">STATUS</div>
-                    <div id="servo_tab">SERVO</div>
-                    <div id="messages_tab">MESSAGES</div>
+                    <div id="gauges_tab" class="hud_tabs">
+                        <span>Sorry, not implemented yet.</span>
+                    </div>
+                    <div id="servo_tab" class="hud_tabs">
+                        <!-- This is created dynamically with javascript (main.js) to avoid hundreds of lines of code :) -->
+                    </div>
+                    <div id="messages_tab">
+                        <p id="messages" class="left-align scroll"></p>
+                        <div id="auto_scroll" class="switch">
+                            Auto Scroll: &nbsp;&nbsp;&nbsp;
+                            <label>
+                                Off
+                                <input type="checkbox" checked="checked">
+                                <span class="lever"></span>
+                                On
+                            </label>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

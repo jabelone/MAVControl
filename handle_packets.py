@@ -29,3 +29,12 @@ def location(packet):
 
     cs.socketio.emit('location', {"lat": cs.gps.lat/10000000, "lng": cs.gps.lon/10000000, "heading": packet.hdg/100},
                      namespace=cs.settings.Sockets.namespace)
+
+
+def status_text(packet):
+    message = packet.text.rstrip('\x00'.encode())
+    if cs.last_status_text == message:
+        return
+    print(message)
+    cs.socketio.emit('status_text', {"text": message.decode("utf-8")}, namespace=cs.settings.Sockets.namespace)
+    cs.last_status_text = message

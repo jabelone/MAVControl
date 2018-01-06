@@ -1,17 +1,36 @@
-/* Custom Stylesheet */
+/* MAVControl Custom Stylesheet */
 /**
- * Use this file to override Materialize files so you can update
- * the core Materialize files in the future
- *
- * Made By MaterializeCSS.com
  */
 
-#hud-row-lower {
+#messages {
+    max-height: 22vh;
+}
+
+.scroll {
+    overflow: auto;
+}
+
+#messages {
+    padding-left: 20px;
+}
+
+.btn {
+    font-size: 80%;
+    width: 100%;
+    padding: 0;
+}
+
+div.input-field {
+    margin-top: -8px;
+}
+
+#hud-row-upper, .select-wrapper input.select-dropdown, input[type=text]:not(.browser-default).validate, #hud-row-lower {
     margin-bottom: 0;
 }
 
-#actions_tab {
-    padding: 10px;
+.card-content {
+    padding-top: 10px;
+    padding-bottom: 10px;
 }
 
 #hud-panel-contents {
@@ -34,6 +53,11 @@ a[href^="https://maps.google.com/maps"]{display:none !important}
 
 #map-row-upper, #map-panel {
     height: 100%;
+}
+
+.hud_tabs {
+    height: 30vh;
+    overflow: auto;
 }
 
 #hud-panel {

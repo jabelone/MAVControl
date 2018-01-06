@@ -10,8 +10,8 @@ from pymavlink.dialects.v10 import ardupilotmega as mavlink1
 from pymavlink.dialects.v20 import ardupilotmega as mavlink2
 import common_state as cs
 import handle_packets as handle
-cs.settings = MAVControlSettings.Settings()
 
+cs.settings = MAVControlSettings.Settings()
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = cs.settings.Frontend.password
@@ -38,7 +38,7 @@ threads = Threads
 
 # Connect to our MAV
 conn_string = "udp:" + cs.settings.MavConnection.ip + ":" + cs.settings.MavConnection.port
-mav = mavutil.mavlink_connection(conn_string,)
+mav = mavutil.mavlink_connection(conn_string, )
 print("Attempting connection to: " + conn_string)
 
 
@@ -57,13 +57,16 @@ def cb(packet, b=None, c=None, d=None):
     # Next line will send all mavlink packets to the frontend
     # socketio.emit('my_response', {'data': str(packet), }, namespace=cs.settings.Sockets.namespace)
 
-    #print(packet.get_type())
+    # print(packet.get_type())
 
     if packet.get_type() == "HEARTBEAT":
         handle.heartbeat(packet)
 
     if packet.get_type() == "GLOBAL_POSITION_INT":
         handle.location(packet)
+
+    if packet.get_type() == "STATUSTEXT":
+        handle.status_text(packet)
 
 
 wait_for_heartbeat(mav)
@@ -83,8 +86,8 @@ def heartbeat_thread():
     while True:
         cs.socketio.sleep(1)
         cs.socketio.emit('heartbeat',
-                      str(time.strftime('%H:%M:%S', cs.last_heartbeat)),
-                      namespace=cs.settings.Sockets.namespace)
+                         str(time.strftime('%H:%M:%S', cs.last_heartbeat)),
+                         namespace=cs.settings.Sockets.namespace)
         print("Type: " + str(cs.ap_type) + " Heartbeat: " + str(time.strftime('%Y-%m-%dT%H:%M:%SZ', cs.last_heartbeat)))
 
 
