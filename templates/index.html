@@ -156,6 +156,33 @@
                         <span>Sorry, not implemented yet.</span>
                     </div>
                     <div id="servo_tab" class="hud_tabs">
+                        <div id="servo_status_row" class="row">
+                            <div class="col servo_num l1"></div>
+                            <div class="col servo_num l1"><span data-servo_number="5">5</span></div>
+                            <div class="col servo_num l1"><span data-servo_number="6">6</span></div>
+                            <div class="col servo_num l1"><span data-servo_number="7">7</span></div>
+                            <div class="col servo_num l1"><span data-servo_number="8">8</span></div>
+                            <div class="col servo_num l1"><span data-servo_number="9">9</span></div>
+                            <div class="col servo_num l1"><span data-servo_number="10">10</span></div>
+                            <div class="col servo_num l1"><span data-servo_number="11">11</span></div>
+                            <div class="col servo_num l1"><span data-servo_number="12">12</span></div>
+                            <div class="col servo_num l1"><span data-servo_number="13">13</span></div>
+                            <div class="col servo_num l1"><span data-servo_number="14">14</span></div>
+                        </div>
+                        <div class="row">
+                            <div class="col servo_btn l1"></div>
+                            <div class="col servo_btn l1"><a data-servo_number="5" class="servo_toggle waves-effect blue waves-light btn">?</a></div>
+                            <div class="col servo_btn l1"><a data-servo_number="6" class="servo_toggle waves-effect blue waves-light btn">?</a></div>
+                            <div class="col servo_btn l1"><a data-servo_number="7" class="servo_toggle waves-effect blue waves-light btn">?</a></div>
+                            <div class="col servo_btn l1"><a data-servo_number="8" class="servo_toggle waves-effect blue waves-light btn">?</a></div>
+                            <div class="col servo_btn l1"><a data-servo_number="9" class="servo_toggle waves-effect blue waves-light btn">?</a></div>
+                            <div class="col servo_btn l1"><a data-servo_number="10" class="servo_toggle waves-effect blue waves-light btn">?</a></div>
+                            <div class="col servo_btn l1"><a data-servo_number="11" class="servo_toggle waves-effect blue waves-light btn">?</a></div>
+                            <div class="col servo_btn l1"><a data-servo_number="12" class="servo_toggle waves-effect blue waves-light btn">?</a></div>
+                            <div class="col servo_btn l1"><a data-servo_number="13" class="servo_toggle waves-effect blue waves-light btn">?</a></div>
+                            <div class="col servo_btn l1"><a data-servo_number="14" class="servo_toggle waves-effect blue waves-light btn">?</a></div>
+                        </div>
+
                         <!-- This is created dynamically with javascript (main.js) to avoid hundreds of lines of code :) -->
                     </div>
                     <div id="messages_tab">
@@ -164,7 +191,7 @@
                             Auto Scroll: &nbsp;&nbsp;&nbsp;
                             <label>
                                 Off
-                                <input type="checkbox" checked="checked">
+                                <input name="auto_scroll_toggle" type="checkbox" checked="checked">
                                 <span class="lever"></span>
                                 On
                             </label>

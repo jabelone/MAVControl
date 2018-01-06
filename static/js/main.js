@@ -8,6 +8,7 @@ let cs = {lat: 0, lng: 0, heading: 0};
 let numDeltas = 100;
 let delay = 10; //milliseconds
 let i = 0;
+let auto_scroll_messages = true;
 
 
 function initMap() {
@@ -108,6 +109,15 @@ $(document).ready(function () {
     $('.modal').modal();
     $('select').material_select();
 
+    // ====== Servo Tab Stuff ======
+    let servo_toggle = document.getElementsByClassName("servo_toggle");
+    for (let i = 0; i < servo_toggle.length; i++) {
+        servo_toggle[i].addEventListener('click', function () {
+            let servo_toggled = $(this).data("servo_number");
+            Materialize.toast('Servo ' + servo_toggled + " toggled", 2000);
+        }, false);
+    }
+
     for (let i = 5; i < 15; i++) {
         let number = i;
         let servo_row = `<div data-servo_number="${number}" class="servo_row row">
@@ -115,12 +125,12 @@ $(document).ready(function () {
                                 <h6>Servo ${number}</h6>
                             </div>
                             <div class="col s12 m4 l2">
-                                <a id="low_servo" data-servo_number="${number}" class="waves-effect blue waves-light btn">
+                                <a data-servo_number="${number}" class="low_servo waves-effect blue waves-light btn">
                                     Low
                                 </a>
                             </div>
                             <div class="col s12 m4 l2">
-                                <a id="high_servo" data-servo_number="${number}" class="waves-effect blue waves-light btn">
+                                <a data-servo_number="${number}" class="high_servo waves-effect blue waves-light btn">
                                     High
                                 </a>
                             </div>
@@ -140,6 +150,24 @@ $(document).ready(function () {
         document.getElementById("servo_tab").insertAdjacentHTML('beforeend', servo_row);
     }
 
+    // ====== Servo High Buttons ======
+    let servo_high = document.getElementsByClassName("high_servo");
+    for (let i = 0; i < servo_high.length; i++) {
+        servo_high[i].addEventListener('click', function () {
+            let servo_toggled = $(this).data("servo_number");
+            Materialize.toast('Servo ' + servo_toggled + " high", 2000);
+        }, false);
+    }
+
+    // ====== Servo Low Buttons ======
+    let servo_low = document.getElementsByClassName("low_servo");
+    for (let i = 0; i < servo_low.length; i++) {
+        servo_low[i].addEventListener('click', function () {
+            let servo_toggled = $(this).data("servo_number");
+            Materialize.toast('Servo ' + servo_toggled + " low", 2000);
+        }, false);
+    }
+
 
     // ====== Handle Socket IO Messages ======
     socket.on('location', function (coord) {
@@ -152,7 +180,20 @@ $(document).ready(function () {
     // ====== Handle Messages ======
     socket.on('status_text', function (message) {
         $('#messages').append($('<div/>').text(message.text).html() + '<br>');
-        document.getElementById('messages').scrollTop = 999999;
+        if (auto_scroll_messages) {
+            document.getElementById('messages').scrollTop = 999999;
+        }
+    });
+
+    document.getElementsByName("auto_scroll_toggle")[0].addEventListener('change', function (thing) {
+        let is_checked = document.getElementsByName('auto_scroll_toggle')[0].checked;
+        console.log("Auto scroll messages: " + is_checked);
+        if (is_checked) {
+            auto_scroll_messages = true;
+            document.getElementById('messages').scrollTop = 999999;
+        } else {
+            auto_scroll_messages = false;
+        }
     });
 
     // ================== Mavlink Stuff ==================

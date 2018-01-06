@@ -2,6 +2,10 @@
 /**
  */
 
+.row .col .servo_btn {
+    padding: 0 5px;
+}
+
 #messages {
     max-height: 22vh;
 }
@@ -24,7 +28,8 @@ div.input-field {
     margin-top: -8px;
 }
 
-#hud-row-upper, .select-wrapper input.select-dropdown, input[type=text]:not(.browser-default).validate, #hud-row-lower {
+#hud-row-upper, .select-wrapper input.select-dropdown, input[type=text]:not(.browser-default).validate,
+#hud-row-lower, #servo_status_row {
     margin-bottom: 0;
 }
 
