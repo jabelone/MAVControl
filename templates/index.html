@@ -60,94 +60,95 @@
                     <div id="actions_tab">
                         <div id="actions_row_1" class="row">
                             <div class="input-field col s12 m4 l4">
-                                <select>
+                                <select id="actions_select">
                                     <optgroup label="In Flight">
-                                        <option value="trigger_camera">Trigger Camera</option>
+                                        <option value="Trigger Camera">Trigger Camera</option>
                                         <optgroup label="Pre Flight">
-                                            <option value="pre_cal">Pre-Flight Calibration</option>
-                                            <option disabled value="pre_reboot">Pre-Flight Reboot</option>
+                                            <option value="Pre-Flight Calibration">Pre-Flight Calibration</option>
+                                            <option disabled value="Pre-Flight Reboot">Pre-Flight Reboot</option>
                                         </optgroup>
                                 </select>
                                 <!--<a class="waves-effect waves-light btn">button</a>-->
                             </div>
                             <div class="col s12 m4 l2">
-                                <a class="waves-effect blue waves-light btn">Do Action</a>
+                                <a id="do_action" class="waves-effect blue waves-light btn">Do Action</a>
                             </div>
                             <div class="col s12 m4 l2">
                                 <div class="input-field">
-                                    <input placeholder="20 m/s" id="do_change_speed" type="text" class="validate">
+                                    <input min="1" max="100" placeholder="20 m/s" id="change_speed_value" type="number" class="validate">
                                 </div>
                             </div>
                             <div class="col s12 m4 l4">
-                                <a class="waves-effect blue waves-light btn">Change Speed</a>
+                                <a id="change_speed_button" class="waves-effect blue waves-light btn">Change Speed</a>
                             </div>
 
                         </div>
                         <div id="actions_row_2" class="row">
                             <div class="input-field col s12 m4 l4">
-                                <select>
+                                <select id="wp_select">
                                     <optgroup label="Target Waypoint">
                                         <option value="0">0</option>
+                                        <option value="1">1</option>
                                 </select>
                                 <!--<a class="waves-effect waves-light btn">button</a>-->
                             </div>
                             <div class="col s12 m4 l2">
-                                <a class="waves-effect blue waves-light btn">Set WP</a>
+                                <a id="set_wp" class="waves-effect blue waves-light btn">Set WP</a>
                             </div>
                             <div class="col s12 m4 l2">
                                 <div class="input-field">
-                                    <input placeholder="50 m" id="do_change_altitude" type="text" class="validate">
+                                    <input min="0" max="1000" placeholder="50 m" id="change_altitude_value" type="number" class="validate">
                                 </div>
                             </div>
                             <div class="col s12 m4 l4">
-                                <a class="waves-effect blue waves-light btn">Change Alt</a>
+                                <a id="change_altitude_button" class="waves-effect blue waves-light btn">Change Alt</a>
                             </div>
 
                         </div>
                         <div id="actions_row_3" class="row">
                             <div class="input-field col s12 m4 l4">
-                                <select>
+                                <select id="mode_select">
                                     <optgroup label="Autonomous">
-                                        <option value="auto">Auto</option>
-                                        <option value="rtl">RTL</option>
-                                        <option value="loiter">Loiter</option>
-                                        <optgroup label="Manual">
-                                            <option value="fbwa">FBWA</option>
-                                            <option value="fbwa">Manual</option>
+                                        <option value="Auto">Auto</option>
+                                        <option value="RTL">RTL</option>
+                                        <option value="Loiter">Loiter</option>
+                                    <optgroup label="Manual">
+                                        <option value="FBWA">FBWA</option>
+                                        <option value="Manual">Manual</option>
                                 </select>
                                 <!--<a class="waves-effect waves-light btn">button</a>-->
                             </div>
                             <div class="col s12 m4 l2">
-                                <a class="waves-effect blue waves-light btn">Set Mode</a>
+                                <a id="set_mode" class="waves-effect blue waves-light btn">Set Mode</a>
                             </div>
                             <div class="col s12 m4 l2">
                                 <div class="input-field">
-                                    <input placeholder="50 m" id="do_change_altitude" type="text" class="validate">
+                                    <input  min="10" max="300" placeholder="50 m" id="loiter_radius_value" type="number" class="validate">
                                 </div>
                             </div>
                             <div class="col s12 m4 l4">
-                                <a class="waves-effect blue waves-light btn">Save Loiter Radius</a>
+                                <a id="loiter_radius_button" class="waves-effect blue waves-light btn">Set Loiter Radius</a>
                             </div>
 
                         </div>
                         <div id="actions_row_4" class="row">
                             <div class="col s12 m4 l2">
-                                <a class="waves-effect blue waves-light btn">Auto</a>
+                                <a id="auto_button" class="waves-effect blue waves-light btn">Auto</a>
                             </div>
                             <div class="col s12 m4 l2">
-                                <a class="waves-effect blue waves-light btn">RTL</a>
+                                <a id="rtl_button" class="waves-effect blue waves-light btn">RTL</a>
                             </div>
                             <div class="col s12 m4 l2">
-                                <a class="waves-effect blue waves-light btn">Loiter</a>
+                                <a id="loiter_button" class="waves-effect blue waves-light btn">Loiter</a>
                             </div>
                             <div class="col s12 m4 l2">
                                 <!--<a class="waves-effect blue waves-light btn"></a>-->
                             </div>
                             <div class="col s12 m4 l2">
-                                <a class="waves-effect orange waves-light btn">ARM</a>
+                                <a id="arm_button" class="waves-effect orange waves-light btn">ARM</a>
                             </div>
                             <div class="col s12 m4 l2">
-                                <a disabled class="waves-effect green waves-light btn">DISARM</a>
+                                <a id="disarm_button" disabled class="waves-effect green waves-light btn">DISARM</a>
                             </div>
 
                         </div>
