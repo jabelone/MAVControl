@@ -38,3 +38,18 @@ def status_text(packet):
     print(message)
     cs.socketio.emit('status_text', {"text": message.decode("utf-8")}, namespace=cs.settings.Sockets.namespace)
     cs.last_status_text = message
+
+def vfr_hud(packet):
+    cs.airspeed = packet.airspeed
+    cs.groundspeed = packet.groundspeed
+    cs.heading = packet.heading
+    cs.throttle = packet.throttle
+    cs.alt = packet.alt
+    cs.climb = packet.climb
+
+    cs.socketio.emit('airspeed', packet.airspeed, namespace=cs.settings.Sockets.namespace)
+    cs.socketio.emit('groundspeed', packet.groundspeed, namespace=cs.settings.Sockets.namespace)
+    cs.socketio.emit('heading', packet.heading, namespace=cs.settings.Sockets.namespace)
+    cs.socketio.emit('throttle', packet.throttle, namespace=cs.settings.Sockets.namespace)
+    cs.socketio.emit('altitude', packet.alt, namespace=cs.settings.Sockets.namespace)
+    cs.socketio.emit('climb', packet.climb, namespace=cs.settings.Sockets.namespace)

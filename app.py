@@ -62,11 +62,11 @@ def cb(packet, b=None, c=None, d=None):
     if packet.get_type() == "HEARTBEAT":
         handle.heartbeat(packet)
 
-    if packet.get_type() == "GLOBAL_POSITION_INT":
+    elif packet.get_type() == "GLOBAL_POSITION_INT":
         handle.location(packet)
 
-    if packet.get_type() == "STATUSTEXT":
-        handle.status_text(packet)
+    elif packet.get_type() == "VFR_HUD":
+        handle.vfr_hud(packet)
 
 
 wait_for_heartbeat(cs.mav)
