@@ -129,37 +129,37 @@ $(document).ready(function () {
     document.getElementById("set_mode").addEventListener('click', function () {
         let mode = document.getElementById("mode_select").value;
         // TODO implement sending mavlink packet for set mode
-        Materialize.toast(mode + " mode", 2000);
+        Materialize.toast("Set " + mode + " mode", 2000);
     }, false);
 
     // Auto Mode Button
     document.getElementById("auto_button").addEventListener('click', function () {
         // TODO implement sending mavlink packet for auto mode
-        Materialize.toast("Auto mode", 2000);
+        Materialize.toast("Set auto mode", 2000);
     }, false);
 
     // RTL Mode Button
     document.getElementById("rtl_button").addEventListener('click', function () {
         // TODO implement sending mavlink packet for rtl mode
-        Materialize.toast("RTL mode", 2000);
+        Materialize.toast("Set RTL mode", 2000);
     }, false);
 
     // Loiter Mode Button
     document.getElementById("loiter_button").addEventListener('click', function () {
         // TODO implement sending mavlink packet for loiter mode
-        Materialize.toast("Loiter mode", 2000);
+        Materialize.toast("Set loiter mode", 2000);
     }, false);
 
     // Arm Button
     document.getElementById("arm_button").addEventListener('click', function () {
         // TODO implement sending mavlink packet for arming
-        Materialize.toast("ARMED!!", 3000);
+        Materialize.toast("ARM REQUESTED", 3000);
     }, false);
 
     // Disarm Button
     document.getElementById("disarm_button").addEventListener('click', function () {
         // TODO implement sending mavlink packet for disarming
-        Materialize.toast("DISARMED!!", 3000);
+        Materialize.toast("DISARM REQUESTED", 3000);
     }, false);
 
     // ====== Servo Tab Stuff ======
@@ -168,7 +168,7 @@ $(document).ready(function () {
         servo_toggle[i].addEventListener('click', function () {
             let servo_toggled = $(this).data("servo_number");
             // TODO implement sending mavlink packet for servo control
-            Materialize.toast('Servo ' + servo_toggled + " toggled", 2000);
+            Materialize.toast('Sent servo ' + servo_toggled + " toggled", 2000);
         }, false);
     }
 
@@ -211,13 +211,13 @@ $(document).ready(function () {
                             </div>
                             <div class="col s12 m4 l3">
                                 <div class="input-field">
-                                    <input id="low_servo_value" placeholder="1000 us" data-servo_number="${number}"
+                                    <input id="low_servo_value" placeholder="1000 μs" data-servo_number="${number}"
                                            type="number" min="800" max="2200" step="10" class="validate">
                                 </div>
                             </div>
                             <div class="col s12 m4 l3">
                                 <div class="input-field">
-                                    <input id="high_servo_value" placeholder="2000 us" data-servo_number="${number}"
+                                    <input id="high_servo_value" placeholder="2000 μs" data-servo_number="${number}"
                                            type="number" min="800" max="2200" step="10" class="validate">
                                 </div>
                             </div>
@@ -256,21 +256,26 @@ $(document).ready(function () {
 
     // ====== Handle Messages ======
     socket.on('status_text', function (message) {
-        $('#messages').append($('<div/>').text(message.text).html() + '<br>');
+        $('#messages').append($('<div/>').text(new Date().toLocaleTimeString() + " - " + message.text).html() + '<br>');
         if (auto_scroll_messages) {
-            document.getElementById('messages').scrollTop = 999999;
+            document.getElementById('messages').scrollTop = document.getElementById('messages').offsetHeight;
         }
     });
 
-    document.getElementsByName("auto_scroll_toggle")[0].addEventListener('change', function (thing) {
+    document.getElementsByName("auto_scroll_toggle")[0].addEventListener('change', function () {
         let is_checked = document.getElementsByName('auto_scroll_toggle')[0].checked;
         console.log("Auto scroll messages: " + is_checked);
         if (is_checked) {
             auto_scroll_messages = true;
-            document.getElementById('messages').scrollTop = 999999;
+            document.getElementById('messages').scrollTop = 9999999;
         } else {
             auto_scroll_messages = false;
         }
+    });
+
+    document.getElementById("clear_message_btn").addEventListener('click', function () {
+        document.getElementById('messages').innerHTML = "";
+        Materialize.toast('Messages cleared', 2000);
     });
 
     // ================== Mavlink Stuff ==================

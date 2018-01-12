@@ -38,7 +38,7 @@ threads = Threads
 
 # Connect to our MAV
 conn_string = "udp:" + cs.settings.MavConnection.ip + ":" + cs.settings.MavConnection.port
-mav = mavutil.mavlink_connection(conn_string, )
+cs.mav = mavutil.mavlink_connection(conn_string, )
 print("Attempting connection to: " + conn_string)
 
 
@@ -69,15 +69,15 @@ def cb(packet, b=None, c=None, d=None):
         handle.status_text(packet)
 
 
-wait_for_heartbeat(mav)
-mav.mav.set_callback(cb)
+wait_for_heartbeat(cs.mav)
+cs.mav.mav.set_callback(cb)
 
 
 def mavlink_thread():
     """Used to process new mavlink messages"""
     while True:
         cs.socketio.sleep(0.0000000000001)
-        mav.recv_match()
+        cs.mav.recv_match()
 
 
 def heartbeat_thread():

@@ -3,6 +3,7 @@ settings = None
 last_heartbeat = None
 ap_type = None
 last_status_text = None
+mav = None
 
 
 class gps:

@@ -112,9 +112,9 @@
                                         <option value="Auto">Auto</option>
                                         <option value="RTL">RTL</option>
                                         <option value="Loiter">Loiter</option>
-                                    <optgroup label="Manual">
-                                        <option value="FBWA">FBWA</option>
-                                        <option value="Manual">Manual</option>
+                                        <optgroup label="Manual">
+                                            <option value="FBWA">FBWA</option>
+                                            <option value="Manual">Manual</option>
                                 </select>
                                 <!--<a class="waves-effect waves-light btn">button</a>-->
                             </div>
@@ -127,7 +127,8 @@
                                 </div>
                             </div>
                             <div class="col s12 m4 l4">
-                                <a id="loiter_radius_button" class="waves-effect blue waves-light btn">Set Loiter Radius</a>
+                                <a id="loiter_radius_button" class="waves-effect blue waves-light btn">Set Loiter
+                                    Radius</a>
                             </div>
 
                         </div>
@@ -145,10 +146,10 @@
                                 <!--<a class="waves-effect blue waves-light btn"></a>-->
                             </div>
                             <div class="col s12 m4 l2">
-                                <a id="arm_button" class="waves-effect orange waves-light btn">ARM</a>
+                                <a id="arm_button" disabled class="waves-effect orange waves-light btn">ARM</a>
                             </div>
                             <div class="col s12 m4 l2">
-                                <a id="disarm_button" disabled class="waves-effect green waves-light btn">DISARM</a>
+                                <a id="disarm_button" class="waves-effect orange waves-light btn">DISARM</a>
                             </div>
 
                         </div>
@@ -172,31 +173,60 @@
                         </div>
                         <div class="row">
                             <div class="col servo_btn l1"></div>
-                            <div class="col servo_btn l1"><a data-servo_number="5" class="servo_toggle waves-effect blue waves-light btn">?</a></div>
-                            <div class="col servo_btn l1"><a data-servo_number="6" class="servo_toggle waves-effect blue waves-light btn">?</a></div>
-                            <div class="col servo_btn l1"><a data-servo_number="7" class="servo_toggle waves-effect blue waves-light btn">?</a></div>
-                            <div class="col servo_btn l1"><a data-servo_number="8" class="servo_toggle waves-effect blue waves-light btn">?</a></div>
-                            <div class="col servo_btn l1"><a data-servo_number="9" class="servo_toggle waves-effect blue waves-light btn">?</a></div>
-                            <div class="col servo_btn l1"><a data-servo_number="10" class="servo_toggle waves-effect blue waves-light btn">?</a></div>
-                            <div class="col servo_btn l1"><a data-servo_number="11" class="servo_toggle waves-effect blue waves-light btn">?</a></div>
-                            <div class="col servo_btn l1"><a data-servo_number="12" class="servo_toggle waves-effect blue waves-light btn">?</a></div>
-                            <div class="col servo_btn l1"><a data-servo_number="13" class="servo_toggle waves-effect blue waves-light btn">?</a></div>
-                            <div class="col servo_btn l1"><a data-servo_number="14" class="servo_toggle waves-effect blue waves-light btn">?</a></div>
+                            <div class="col servo_btn l1"><a data-servo_number="5"
+                                                             class="servo_toggle waves-effect blue waves-light btn">?</a>
+                            </div>
+                            <div class="col servo_btn l1"><a data-servo_number="6"
+                                                             class="servo_toggle waves-effect blue waves-light btn">?</a>
+                            </div>
+                            <div class="col servo_btn l1"><a data-servo_number="7"
+                                                             class="servo_toggle waves-effect blue waves-light btn">?</a>
+                            </div>
+                            <div class="col servo_btn l1"><a data-servo_number="8"
+                                                             class="servo_toggle waves-effect blue waves-light btn">?</a>
+                            </div>
+                            <div class="col servo_btn l1"><a data-servo_number="9"
+                                                             class="servo_toggle waves-effect blue waves-light btn">?</a>
+                            </div>
+                            <div class="col servo_btn l1"><a data-servo_number="10"
+                                                             class="servo_toggle waves-effect blue waves-light btn">?</a>
+                            </div>
+                            <div class="col servo_btn l1"><a data-servo_number="11"
+                                                             class="servo_toggle waves-effect blue waves-light btn">?</a>
+                            </div>
+                            <div class="col servo_btn l1"><a data-servo_number="12"
+                                                             class="servo_toggle waves-effect blue waves-light btn">?</a>
+                            </div>
+                            <div class="col servo_btn l1"><a data-servo_number="13"
+                                                             class="servo_toggle waves-effect blue waves-light btn">?</a>
+                            </div>
+                            <div class="col servo_btn l1"><a data-servo_number="14"
+                                                             class="servo_toggle waves-effect blue waves-light btn">?</a>
+                            </div>
                         </div>
 
                         <!-- This is created dynamically with javascript (main.js) to avoid hundreds of lines of code :) -->
                     </div>
                     <div id="messages_tab">
-                        <p id="messages" class="left-align scroll"></p>
-                        <div id="auto_scroll" class="switch">
-                            Auto Scroll: &nbsp;&nbsp;&nbsp;
-                            <label>
-                                Off
-                                <input name="auto_scroll_toggle" type="checkbox" checked="checked">
-                                <span class="lever"></span>
-                                On
-                            </label>
+                        <div class="row">
+                            <div class="col l2"></div>
+                            <div class="col l4">
+                                Auto Scroll: &nbsp;&nbsp;&nbsp;
+                                <div id="auto_scroll" class="switch">
+                                    <label>
+                                        Off
+                                        <input name="auto_scroll_toggle" type="checkbox" checked="checked">
+                                        <span class="lever"></span>
+                                        On
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col l4">
+                                <a id="clear_message_btn" class="waves-effect blue waves-light btn">Clear Messages</a>
+                            </div>
+                            <div class="col l2"></div>
                         </div>
+                        <p id="messages" class="left-align scroll"></p>
                     </div>
                 </div>
             </div>
