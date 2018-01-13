@@ -132,6 +132,18 @@ def test_connect():
 
     emit('my_response', {'data': 'Connected', 'count': 0})
 
+@cs.socketio.on('arm', namespace=cs.settings.Sockets.namespace)
+def arm_vehicle():
+    cs.mav.motors_armed_wait()
+    print("armed maybe")
+    emit('armed')
+
+@cs.socketio.on('disarm', namespace=cs.settings.Sockets.namespace)
+def arm_vehicle():
+    cs.mav.motors_disarmed_wait()
+    print("disarmed maybe")
+    emit('disarmed')
+
 
 if __name__ == '__main__':
     cs.socketio.run(app, debug=True)

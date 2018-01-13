@@ -7,13 +7,18 @@
     <script type="text/javascript" src="/static/js/jquery-3.2.1.min.js"></script>
     <script type="text/javascript" src="/static/js/socket.io.min.js"></script>
     <script type="text/javascript" src="/static/js/main.js" charset="utf-8"></script>
-    <script async defer
-            src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB4yhwb2dk-UFfnBoV67yRIW0GhKvzFvQ4&callback=initMap">
-    </script>
+    <script type="text/javascript" src="/static/js/actions_tab.js" charset="utf-8"></script>
+    <script type="text/javascript" src="/static/js/servo_tab.js" charset="utf-8"></script>
 
     <!-- CSS  -->
     <link href="/static/css/materialize.css" type="text/css" rel="stylesheet" media="screen,projection"/>
     <link href="/static/css/style.css" type="text/css" rel="stylesheet" media="screen,projection"/>
+
+    <!-- Leaflet (map) stuff -->
+    <link rel="stylesheet" href="/static/css/leaflet.css"/>
+    <script src="/static/js/leaflet.js"></script>
+    <script type="text/javascript" src="/static/js/leaflet.rotatedMarker.js"></script>
+    <!-- ^ Found here: https://github.com/bbecquet/Leaflet.RotatedMarker -->
 </head>
 <body>
 
@@ -230,7 +235,18 @@
                         <p id="messages" class="left-align scroll"></p>
                     </div>
                     <div id="status_tab" class="hud_tabs">
-                        <span>Sorry, not implemented yet.</span>
+                        <div class="row">
+                            <div class="col s12 m6 l6"><span>Airspeed: </span><span id="status_airspeed"></span></div>
+                            <div class="col s12 m6 l6"><span>Altitude: </span><span id="status_altitude"></span></div>
+                        </div>
+                        <div class="row">
+                            <div class="col s12 m6 l6"><span>Latitude: </span><span id="status_latitude"></span></div>
+                            <div class="col s12 m6 l6"><span>Longitude: </span><span id="status_longitude"></span></div>
+                        </div>
+                        <div class="row">
+                            <div class="col s12 m6 l6"><span>Heading: </span><span id="status_heading"></span></div>
+                            <div class="col s12 m6 l6"><span></span><span id="status_"></span></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -267,7 +283,7 @@
                 Backend Latency: <b><span id="footer-ping-pong"></span>ms</b>
             </div>
             <div class="col l4 m7 s12">
-                Last Vehicle Heartbeat: <b><span id="footer-heartbeat"></span></b>
+                Last Vehicle Heartbeat: <b><span id="footer-heartbeat">DISCONNECTED</span></b>
             </div>
         </div>
     </div>
@@ -353,10 +369,10 @@
         </div>
     </div>
 
-    <!--  Scripts-->
-    <!--<script src="https://code.jquery.com/jquery-2.1.1.min.js"></script>-->
+    <!-- Scripts-->
     <script src="/static/js/materialize.js"></script>
-    <script src="/static/js/init.js"></script>
+    <script type="text/javascript" src="/static/js/leaflet-stuff.js"></script>
 
+</footer>
 </body>
 </html>

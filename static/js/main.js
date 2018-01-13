@@ -1,257 +1,55 @@
-let mapsLoaded = false;
-let map, marker, icon, flightPath, deltaLat, deltaLng;
+let map, icon;
 let locationHistory = [];
-let defaultLocation = {lat: -27.506537, lng: 153.023248};
 let maxPathHistory = 200;
-let cs = {lat: 0, lng: 0, heading: 0};
+let cs = {location: 0, lat: 0, lng: 0, heading: 0, airspeed: 0, altitude: 0};
 
-let numDeltas = 100;
 let delay = 10; //milliseconds
 let i = 0;
 let auto_scroll_messages = true;
 
-
-function initMap() {
-    mapsLoaded = true;
-
-    icon = {
-        url: "/static/img/plane.png",
-        scaledSize: new google.maps.Size(100, 100), // scaled size
-        anchor: new google.maps.Point(50, 50) // anchor
-    };
-
-    marker = new google.maps.Marker({
-        position: defaultLocation,
-        title: "Current Vehicle Location",
-        icon: icon,
-        optimized: false
-    });
-
-    map = new google.maps.Map(document.getElementById('map'), {
-        zoom: 17,
-        streetViewControl: false,
-        center: defaultLocation
-    });
-
-    flightPath = new google.maps.Polyline({
-        path: locationHistory,
-        geodesic: true,
-        strokeColor: '#d32f2f',
-        strokeOpacity: 1.0,
-        strokeWeight: 2
-    });
-    flightPath.setMap(map);
-    marker.setMap(map);
-}
-
-function moveMarker() {
-    locationHistory[0].lat += deltaLat;
-    locationHistory[0].lng += deltaLng;
-    let currentLocation = new google.maps.LatLng(locationHistory[0].lat, locationHistory[0].lng);
-    //marker.setPosition(currentLocation);
-    map.setCenter(currentLocation);
-    if (i !== numDeltas) {
-        i++;
-        setTimeout(moveMarker, delay);
-    }
-
-    let rotate = cs.heading;
-    $('img[src="/static/img/plane.png"]').css(
-        {
-            '-webkit-transform': 'rotate(' + rotate + 'deg)',
-            '-moz-transform': 'rotate(' + rotate + 'deg)',
-            '-ms-transform': 'rotate(' + rotate + 'deg)',
-            'transform': 'rotate(' + rotate + 'deg)'
-        });
-}
-
-function transition(lat, lng) {
-    i = 0;
-    deltaLat = (lat - locationHistory[0].lat) / numDeltas;
-    deltaLng = (lng - locationHistory[0].lng) / numDeltas;
-    moveMarker();
-}
-
-// ====== Vehicle UI Stuff ======
-function updateMapLocation(lat, lng, heading) {
-    if (mapsLoaded) {
-        let prevLocation = {lat: marker.getPosition().lat(), lng: marker.getPosition().lng()};
-        let currentLocation = new google.maps.LatLng(lat, lng);
-        locationHistory.unshift(prevLocation);
-        if (locationHistory.length > maxPathHistory) {
-            locationHistory.pop();
-        }
-
-        // Draw our flightpath
-        flightPath.setPath(locationHistory);
-
-        // Set our rotation
-        icon.rotation = Math.round(heading);
-        marker.setPosition(currentLocation);
-
-        // Update our marker location
-        transition(lat, lng);
-        //map.setCenter(currentLocation);
-
-    } else {
-        Materialize.toast("Can't update map! Google Maps API not loaded.", 4000);
-
-    }
-}
-
-$(document).ready(function () {
-    // ================== Socket IO init stuff ==================
+// ================== Socket IO init stuff ==================
     let namespace = '/MAVControl';
     let socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port + namespace);
 
 
+// ====== Vehicle UI Stuff ======
+function updateMapLocation() {
+    locationHistory.unshift([0, 0]);
+    if (locationHistory.length > maxPathHistory) {
+        locationHistory.pop();
+    }
+
+    // Set our rotation
+    planeMarker.setRotationAngle(cs.heading);
+    planeMarker.setLatLng(cs.location);
+    leafletmap.setView(cs.location);
+
+}
+
+$(document).ready(function () {
     // ====== Page Stuff ======
     $('.modal').modal();
     $('select').material_select();
 
-
-    // ====== Actions Tab Stuff ======
-    // Do Action
-    document.getElementById("do_action").addEventListener('click', function () {
-        let action = document.getElementById("actions_select").value;
-        // TODO implement sending mavlink packet for action
-        Materialize.toast('Did ' + action, 2000);
-    }, false);
-
-    // Do Action
-    document.getElementById("set_wp").addEventListener('click', function () {
-        let wp = document.getElementById("wp_select").value;
-        // TODO implement sending mavlink packet for wp
-        Materialize.toast('Set WP to ' + wp, 2000);
-    }, false);
-
-    // Set Mode
-    document.getElementById("set_mode").addEventListener('click', function () {
-        let mode = document.getElementById("mode_select").value;
-        // TODO implement sending mavlink packet for set mode
-        Materialize.toast("Set " + mode + " mode", 2000);
-    }, false);
-
-    // Auto Mode Button
-    document.getElementById("auto_button").addEventListener('click', function () {
-        // TODO implement sending mavlink packet for auto mode
-        Materialize.toast("Set auto mode", 2000);
-    }, false);
-
-    // RTL Mode Button
-    document.getElementById("rtl_button").addEventListener('click', function () {
-        // TODO implement sending mavlink packet for rtl mode
-        Materialize.toast("Set RTL mode", 2000);
-    }, false);
-
-    // Loiter Mode Button
-    document.getElementById("loiter_button").addEventListener('click', function () {
-        // TODO implement sending mavlink packet for loiter mode
-        Materialize.toast("Set loiter mode", 2000);
-    }, false);
-
-    // Arm Button
-    document.getElementById("arm_button").addEventListener('click', function () {
-        // TODO implement sending mavlink packet for arming
-        Materialize.toast("ARM REQUESTED", 3000);
-    }, false);
-
-    // Disarm Button
-    document.getElementById("disarm_button").addEventListener('click', function () {
-        // TODO implement sending mavlink packet for disarming
-        Materialize.toast("DISARM REQUESTED", 3000);
-    }, false);
-
-    // ====== Servo Tab Stuff ======
-    let servo_toggle = document.getElementsByClassName("servo_toggle");
-    for (let i = 0; i < servo_toggle.length; i++) {
-        servo_toggle[i].addEventListener('click', function () {
-            let servo_toggled = $(this).data("servo_number");
-            // TODO implement sending mavlink packet for servo control
-            Materialize.toast('Sent servo ' + servo_toggled + " toggled", 2000);
-        }, false);
-    }
-
-    // Set Airspeed
-    document.getElementById("change_speed_button").addEventListener('click', function () {
-        let speed = document.getElementById("change_speed_value").value;
-        // TODO implement sending mavlink packet for set altitude
-        Materialize.toast("Set target airspeed to " + speed, 3000);
-    }, false);
-
-    // Set Altitude
-    document.getElementById("change_altitude_button").addEventListener('click', function () {
-        let altitude = document.getElementById("change_altitude_value").value;
-        // TODO implement sending mavlink packet for set altitude
-        Materialize.toast("Set target altitude to " + altitude, 3000);
-    }, false);
-
-    // Set Loiter Radius
-    document.getElementById("loiter_radius_button").addEventListener('click', function () {
-        let radius = document.getElementById("loiter_radius_value").value;
-        // TODO implement sending mavlink packet for set loiter radius
-        Materialize.toast("Set loiter radius to " + radius, 3000);
-    }, false);
-
-    for (let i = 5; i < 15; i++) {
-        let number = i;
-        let servo_row = `<div data-servo_number="${number}" class="servo_row row">
-                            <div class="valign-wrapper col s12 m4 l2">
-                                <h6>Servo ${number}</h6>
-                            </div>
-                            <div class="col s12 m4 l2">
-                                <a data-servo_number="${number}" class="low_servo waves-effect blue waves-light btn">
-                                    Low
-                                </a>
-                            </div>
-                            <div class="col s12 m4 l2">
-                                <a data-servo_number="${number}" class="high_servo waves-effect blue waves-light btn">
-                                    High
-                                </a>
-                            </div>
-                            <div class="col s12 m4 l3">
-                                <div class="input-field">
-                                    <input id="low_servo_value" placeholder="1000 μs" data-servo_number="${number}"
-                                           type="number" min="800" max="2200" step="10" class="validate">
-                                </div>
-                            </div>
-                            <div class="col s12 m4 l3">
-                                <div class="input-field">
-                                    <input id="high_servo_value" placeholder="2000 μs" data-servo_number="${number}"
-                                           type="number" min="800" max="2200" step="10" class="validate">
-                                </div>
-                            </div>
-                        </div>`;
-        document.getElementById("servo_tab").insertAdjacentHTML('beforeend', servo_row);
-    }
-
-    // ====== Servo High Buttons ======
-    let servo_high = document.getElementsByClassName("high_servo");
-    for (let i = 0; i < servo_high.length; i++) {
-        servo_high[i].addEventListener('click', function () {
-            let servo_toggled = $(this).data("servo_number");
-            // TODO implement sending mavlink packet for servo high
-            Materialize.toast('Servo ' + servo_toggled + " high", 2000);
-        }, false);
-    }
-
-    // ====== Servo Low Buttons ======
-    let servo_low = document.getElementsByClassName("low_servo");
-    for (let i = 0; i < servo_low.length; i++) {
-        servo_low[i].addEventListener('click', function () {
-            let servo_toggled = $(this).data("servo_number");
-            // TODO implement sending mavlink packet for servo low
-            Materialize.toast('Servo ' + servo_toggled + " low", 2000);
-        }, false);
-    }
-
-
     // ====== Handle Socket IO Messages ======
+    socket.on('airspeed', function (message) {
+        cs.airspeed = parseFloat(message).toFixed(2)
+    });
+
+    socket.on('armed', function (message) {
+        Materialize.toast('ARMED!!', 2000);
+    });
+
+    socket.on('disarmed', function (message) {
+        Materialize.toast('DISARMED!!', 2000);
+    });
+
     socket.on('location', function (coord) {
-        updateMapLocation(coord.lat, coord.lng, coord.heading);
         cs.heading = coord.heading;
         cs.lat = coord.lat;
         cs.lng = coord.lng;
+        cs.location = [coord.lat, coord.lng];
+        updateMapLocation();
     });
 
     // ====== Handle Messages ======
@@ -346,4 +144,16 @@ $(document).ready(function () {
         socket.emit('disconnect_request');
         return false;
     });
+
+
+    // Update the status tab twice per second
+    function updateStatusTab() {
+        document.getElementById('status_airspeed').innerText = String(cs.airspeed);
+        document.getElementById('status_altitude').innerText = String(cs.altitude);
+        document.getElementById('status_latitude').innerText = String(cs.lat);
+        document.getElementById('status_longitude').innerText = String(cs.lng);
+        document.getElementById('status_heading').innerText = String(cs.heading);
+        setTimeout(updateStatusTab, 500);
+    }
+    updateStatusTab();
 });

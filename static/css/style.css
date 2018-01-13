@@ -2,6 +2,10 @@
 /**
  */
 
+.hud_tabs {
+    text-align: left;
+}
+
 .row .col .servo_btn {
     padding: 0 5px;
 }
@@ -79,6 +83,7 @@ a[href^="https://maps.google.com/maps"]{display:none !important}
     top: 7vh;
     bottom: 5vh;
     width: 60vw;
+    min-height: 200px;
 }
 .navigation {
     min-height: 7vh;
