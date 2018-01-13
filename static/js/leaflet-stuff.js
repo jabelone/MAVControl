@@ -5,7 +5,7 @@ let planeBlue = L.icon({
 
     iconSize:     [100, 100], // size of the icon
     shadowSize:   [0, 0], // size of the shadow
-    iconAnchor:   [60, 60], // point of the icon which will correspond to marker's location
+    iconAnchor:   [50, 50], // point of the icon which will correspond to marker's location
     shadowAnchor: [60, 60],  // the same for the shadow
     popupAnchor:  [0, -30] // point from which the popup should open relative to the iconAnchor
 });
@@ -20,3 +20,6 @@ L.tileLayer('https://api.mapbox.com/styles/v1/jabelone/cjcd5slq139jx2sqmzjg2ivmd
 
 let planeMarker = L.marker(defaultMapLocation, {icon: planeBlue, rotationOrigin: "center center",
     title: "Vehicle"}).addTo(leafletmap);
+
+// create a red polyline from an array of LatLng points
+flightPath = L.polyline(locationHistory, {color: 'red'}).addTo(leafletmap);

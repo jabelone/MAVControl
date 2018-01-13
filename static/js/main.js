@@ -1,6 +1,6 @@
-let map, icon;
+let map, icon, flightPath;
 let locationHistory = [];
-let maxPathHistory = 200;
+let maxPathHistory = 300;
 let cs = {location: 0, lat: 0, lng: 0, heading: 0, airspeed: 0, altitude: 0};
 
 let delay = 10; //milliseconds
@@ -14,15 +14,21 @@ let auto_scroll_messages = true;
 
 // ====== Vehicle UI Stuff ======
 function updateMapLocation() {
-    locationHistory.unshift([0, 0]);
+    locationHistory.unshift([cs.lat, cs.lng]);
+
     if (locationHistory.length > maxPathHistory) {
         locationHistory.pop();
     }
 
     // Set our rotation
     planeMarker.setRotationAngle(cs.heading);
+
+    // Set our location
     planeMarker.setLatLng(cs.location);
     leafletmap.setView(cs.location);
+
+    // Update flight path
+    flightPath.setLatLngs(locationHistory);
 
 }
 
