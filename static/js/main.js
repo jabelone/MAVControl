@@ -1,15 +1,16 @@
 let map, icon, flightPath;
 let locationHistory = [];
 let maxPathHistory = 300;
-let cs = {location: 0, lat: 0, lng: 0, heading: 0, airspeed: 0, altitude: 0};
+let attitude = {roll: 0, pitch: 0, yaw: 0};
+let cs = {location: 0, lat: 0, lng: 0, heading: 0, airspeed: 0, altitude: 0, attitude: attitude};
 
 let delay = 10; //milliseconds
 let i = 0;
 let auto_scroll_messages = true;
 
 // ================== Socket IO init stuff ==================
-    let namespace = '/MAVControl';
-    let socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port + namespace);
+let namespace = '/MAVControl';
+let socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port + namespace);
 
 
 // ====== Vehicle UI Stuff ======
@@ -48,6 +49,25 @@ $(document).ready(function () {
 
     socket.on('disarmed', function (message) {
         Materialize.toast('DISARMED!!', 2000);
+    });
+
+    socket.on('attitude', function (message) {
+        cs.attitude.pitch = message.pitch;
+        cs.attitude.roll = message.roll;
+        cs.attitude.yaw = message.yaw;
+        let hud_roll = -message.roll;
+        //let hud_roll = 0;
+        let pitch_movement = (message.pitch*0.9)-25;
+
+        let div = document.getElementById('moving-hud-panel');
+        let div2 = document.getElementById('moving-hud-markings');
+
+        div.style.webkitTransform = 'rotate(' + hud_roll + 'deg)';
+        div.style.mozTransform = 'rotate(' + hud_roll + 'deg)';
+        div.style.msTransform = 'rotate(' + hud_roll + 'deg)';
+        div.style.oTransform = 'rotate(' + hud_roll + 'deg)';
+        div.style.transform = 'rotate(' + hud_roll + 'deg)';
+        div2.style.transform = 'translateX(-50%) translateY(' + pitch_movement + '%)';
     });
 
     socket.on('location', function (coord) {
@@ -159,7 +179,11 @@ $(document).ready(function () {
         document.getElementById('status_latitude').innerText = String(cs.lat);
         document.getElementById('status_longitude').innerText = String(cs.lng);
         document.getElementById('status_heading').innerText = String(cs.heading);
+        document.getElementById('status_pitch').innerText = String(cs.attitude.pitch);
+        document.getElementById('status_roll').innerText = String(cs.attitude.roll);
+        document.getElementById('status_yaw').innerText = String(cs.attitude.yaw);
         setTimeout(updateStatusTab, 500);
     }
+
     updateStatusTab();
 });

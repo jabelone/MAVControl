@@ -14,3 +14,12 @@ class gps:
     vy = None
     vz = None
     heading = None
+
+
+class attitude:
+    roll = None
+    pitch = None
+    yaw = None
+    rollspeed = None
+    pitchspeed = None
+    yawspeed = None

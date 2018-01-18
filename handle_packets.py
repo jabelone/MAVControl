@@ -1,4 +1,4 @@
-import time
+import time, math
 from pymavlink import mavutil
 import common_state as cs
 
@@ -53,3 +53,15 @@ def vfr_hud(packet):
     cs.socketio.emit('throttle', packet.throttle, namespace=cs.settings.Sockets.namespace)
     cs.socketio.emit('altitude', packet.alt, namespace=cs.settings.Sockets.namespace)
     cs.socketio.emit('climb', packet.climb, namespace=cs.settings.Sockets.namespace)
+
+def attitude(packet):
+
+    cs.attitude.pitch = packet.pitch*180/math.pi
+    cs.attitude.roll = packet.roll*180/math.pi
+    cs.attitude.yaw = packet.yaw*180/math.pi
+    cs.attitude.pitchspeed = packet.pitchspeed
+    cs.attitude.rollspeed = packet.rollspeed
+    cs.attitude.yawspeed = packet.yawspeed
+
+    cs.socketio.emit('attitude', {'pitch': cs.attitude.pitch, 'roll': cs.attitude.roll, 'yaw': cs.attitude.yaw},
+                     namespace=cs.settings.Sockets.namespace)

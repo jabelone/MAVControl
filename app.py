@@ -68,6 +68,9 @@ def cb(packet, b=None, c=None, d=None):
     elif packet.get_type() == "VFR_HUD":
         handle.vfr_hud(packet)
 
+    elif packet.get_type() == "ATTITUDE":
+        handle.attitude(packet)
+
 
 wait_for_heartbeat(cs.mav)
 cs.mav.mav.set_callback(cb)
@@ -95,6 +98,13 @@ def heartbeat_thread():
 def index():
     return render_template('index.html', async_mode=cs.socketio.async_mode, page_name=cs.settings.Frontend.name,
                            python_version=sys.version)
+
+
+@app.route('/pitch')
+def pitch_url():
+    cs.socketio.emit('attitude', {'pitch': 10, 'roll': cs.attitude.roll, 'yaw': cs.attitude.yaw},
+                     namespace=cs.settings.Sockets.namespace)
+    return "ok done"
 
 
 @cs.socketio.on('update_connection_settings', namespace=cs.settings.Sockets.namespace)
@@ -132,11 +142,13 @@ def test_connect():
 
     emit('my_response', {'data': 'Connected', 'count': 0})
 
+
 @cs.socketio.on('arm', namespace=cs.settings.Sockets.namespace)
 def arm_vehicle():
     cs.mav.motors_armed_wait()
     print("armed maybe")
     emit('armed')
+
 
 @cs.socketio.on('disarm', namespace=cs.settings.Sockets.namespace)
 def arm_vehicle():

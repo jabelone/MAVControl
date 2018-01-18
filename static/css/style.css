@@ -2,6 +2,46 @@
 /**
  */
 
+html {
+    overflow: hidden;
+}
+
+nav, footer {
+    z-index: 10;
+    position: relative;
+}
+
+#moving-hud-panel {
+    height: 100%;
+    transform: rotate(0deg);
+
+    -webkit-transition: all 0.2s linear;
+    -moz-transition: all 0.2s linear;
+    -o-transition: all 0.2s linear;
+    transition: all 0.2s linear;
+}
+
+#moving-hud-bg {
+    transform: translate(-50%, -38%);
+    position: absolute;
+}
+
+#moving-hud-markings {
+    margin-right: 30px;
+    position: absolute;
+    transform: translate(-56%, -25%);
+}
+
+#moving-hud-bottom {
+    height: 700px;
+    width: 1000px;
+}
+
+#hud-row-lower {
+    z-index: 10;
+    position: relative;
+}
+
 .hud_tabs {
     text-align: left;
 }
@@ -38,22 +78,28 @@ div.input-field {
 }
 
 .card-content {
+    height: 33vh;
     padding-top: 10px;
-    padding-bottom: 10px;
 }
 
 #hud-panel-contents {
     height: 50vh;
 }
 
-a[href^="http://maps.google.com/maps"]{display:none !important}
-a[href^="https://maps.google.com/maps"]{display:none !important}
+a[href^="http://maps.google.com/maps"] {
+    display: none !important
+}
+
+a[href^="https://maps.google.com/maps"] {
+    display: none !important
+}
 
 .gmnoprint a, .gmnoprint span, .gm-style-cc {
-    display:none;
+    display: none;
 }
+
 .gmnoprint div {
-    background:none !important;
+    background: none !important;
 }
 
 #main-row {
@@ -85,6 +131,7 @@ a[href^="https://maps.google.com/maps"]{display:none !important}
     width: 60vw;
     min-height: 200px;
 }
+
 .navigation {
     min-height: 7vh;
 }
@@ -107,6 +154,9 @@ a[href^="https://maps.google.com/maps"]{display:none !important}
 .page-footer {
     padding: 10px;
     min-height: 5vh;
+
+    position: absolute;
+    width: 100vw;
 }
 
 .container .row {

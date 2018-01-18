@@ -45,9 +45,12 @@
 
     <div id="hud-panel" class="no-padding grey lighten-2 col">
         <div id="hud-row-upper" class="green lighten-2 row center">
-            <div id="hud-panel-contents" class="col s12 m12 l12">
+            <div id="hud-panel-contents" class="no-padding col s12 m12 l12">
                 <!-- HUD panel with artificial horizon etc -->
-
+                <div id="moving-hud-panel" class="no-padding">
+                    <img id="moving-hud-bg" src="/static/img/artificial_horizon.svg"/>
+                    <img id="moving-hud-markings" src="/static/img/hud_markings.svg"/>
+                </div>
             </div>
         </div>
         <div id="hud-row-lower" class="grey lighten-4 no-padding row center">
@@ -247,6 +250,18 @@
                             <div class="col s12 m6 l6"><span>Heading: </span><span id="status_heading"></span></div>
                             <div class="col s12 m6 l6"><span></span><span id="status_"></span></div>
                         </div>
+                        <div class="row">
+                            <div class="col s12 m6 l6"><span>Roll: </span><span id="status_roll"></span></div>
+                            <div class="col s12 m6 l6"><span></span><span id="status_"></span></div>
+                        </div>
+                        <div class="row">
+                            <div class="col s12 m6 l6"><span>Pitch: </span><span id="status_pitch"></span></div>
+                            <div class="col s12 m6 l6"><span></span><span id="status_"></span></div>
+                        </div>
+                        <div class="row">
+                            <div class="col s12 m6 l6"><span>Yaw: </span><span id="status_yaw"></span></div>
+                            <div class="col s12 m6 l6"><span></span><span id="status_"></span></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -304,7 +319,7 @@
             <h4>Project Goals:</h4>
             This project is meant to compliment Mission Planner. Mission Planner is fantastic and this will never
             replace it. However, when running an operation Mission Planner isn't really reliable enough. It crashes
-            slightly to often to be considered reliable and isn't very portable between operating systems. The goal of
+            slightly too often to be considered reliable and isn't very portable between operating systems. The goal of
             this is to replace the "Flight Data" screen in Mission Planner with something super reliable, fast and
             clean.
 
