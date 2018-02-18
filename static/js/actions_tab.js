@@ -43,13 +43,11 @@ $(document).ready(function () {
     // Arm Button
     document.getElementById("arm_button").addEventListener('click', function () {
         socket.emit('arm');
-        Materialize.toast("ARM REQUESTED", 3000);
     }, false);
 
     // Disarm Button
     document.getElementById("disarm_button").addEventListener('click', function () {
         socket.emit('disarm');
-        Materialize.toast("DISARM REQUESTED", 3000);
     }, false);
 
     // Set Airspeed

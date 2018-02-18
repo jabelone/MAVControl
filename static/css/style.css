@@ -7,7 +7,6 @@ html {
 }
 
 nav, footer {
-    z-index: 10;
     position: relative;
 }
 
@@ -38,8 +37,8 @@ nav, footer {
 }
 
 #hud-row-lower {
-    z-index: 10;
     position: relative;
+    height: 100vh;
 }
 
 .hud_tabs {
@@ -51,21 +50,28 @@ nav, footer {
 }
 
 #messages {
-    max-height: 21.5vh;
+    max-height: 32vh;
+    padding-left: 20px;
 }
 
 .scroll {
     overflow: auto;
 }
 
-#messages {
-    padding-left: 20px;
-}
-
 .btn {
     font-size: 80%;
-    width: 100%;
-    padding: 0;
+    min-width: 70px;
+    padding-left: 5px;
+    padding-right: 5px;
+    float: left;
+}
+
+.servo_toggle.btn {
+    min-width: 30px;
+}
+
+#do_action.btn {
+    padding: 1px;
 }
 
 div.input-field {
@@ -84,6 +90,7 @@ div.input-field {
 
 #hud-panel-contents {
     height: 50vh;
+    position: relative;
 }
 
 a[href^="http://maps.google.com/maps"] {
@@ -111,7 +118,7 @@ a[href^="https://maps.google.com/maps"] {
 }
 
 .hud_tabs {
-    height: 30vh;
+    height: 39vh;
     overflow: auto;
 }
 
@@ -134,6 +141,8 @@ a[href^="https://maps.google.com/maps"] {
 
 .navigation {
     min-height: 7vh;
+    position: absolute;
+    z-index: 1;
 }
 
 #map-bottom-contents {
@@ -154,8 +163,8 @@ a[href^="https://maps.google.com/maps"] {
 .page-footer {
     padding: 10px;
     min-height: 5vh;
-
     position: absolute;
+    bottom: 0;
     width: 100vw;
 }
 
@@ -193,4 +202,43 @@ a[href^="https://maps.google.com/maps"] {
     direction: ltr;
     -webkit-font-feature-settings: 'liga';
     -webkit-font-smoothing: antialiased;
+}
+
+.floating-scales, .floating-scale-pointer {
+    position: absolute;
+    height: 25vh;
+    width: 5vw;
+    background-color: #00000050;
+    color: #fff;
+    font-size: 1.2em;
+    top: 50%;
+    z-index: 1;
+    transform: translateY(-50%);
+    margin-top: 4vh;
+}
+
+.floating-scale-pointer {
+    height: 3vh;
+    margin-top: 0;
+    background-color: #000;
+}
+
+#floating-scale-altitude {
+    right: 0;
+}
+
+.floating {
+    position: absolute;
+    background-color: #00000050;
+    color: #fff;
+    font-size: 1.2em;
+    bottom: 10%;
+    right: 0;
+    z-index: 1;
+    padding-left: 5px;
+    padding-right: 5px;
+}
+
+#floating-armed {
+    right: 45%;
 }

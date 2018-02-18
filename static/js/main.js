@@ -2,7 +2,7 @@ let map, icon, flightPath;
 let locationHistory = [];
 let maxPathHistory = 300;
 let attitude = {roll: 0, pitch: 0, yaw: 0};
-let cs = {location: 0, lat: 0, lng: 0, heading: 0, airspeed: 0, altitude: 0, attitude: attitude};
+let cs = {location: 0, lat: 0, lng: 0, heading: 0, airspeed: 0, altitude_agl: 0, attitude: attitude, ap_type: null};
 
 let delay = 10; //milliseconds
 let i = 0;
@@ -40,7 +40,19 @@ $(document).ready(function () {
 
     // ====== Handle Socket IO Messages ======
     socket.on('airspeed', function (message) {
-        cs.airspeed = parseFloat(message).toFixed(2)
+        cs.airspeed = parseFloat(message).toFixed(2);
+        document.getElementById('floating-scale-pointer-speed').innerText = String(Math.round(cs.airspeed)) + " m/s";
+    });
+
+    socket.on('altitude_agl', function (message) {
+        cs.altitude_agl = parseFloat(message).toFixed(2);
+        document.getElementById('floating-scale-pointer-altitude').innerText = String(Math.round(cs.altitude_agl)) + " m";
+    });
+
+    socket.on('mode', function (message) {
+        cs.mode = message;
+        document.getElementById('status_mode').innerText = cs.mode;
+        document.getElementById('floating-mode-text').innerText = cs.mode;
     });
 
     socket.on('armed', function (message) {
@@ -51,13 +63,17 @@ $(document).ready(function () {
         Materialize.toast('DISARMED!!', 2000);
     });
 
+    socket.on('ap_type', function (message) {
+        cs.ap_type = message;
+    });
+
     socket.on('attitude', function (message) {
         cs.attitude.pitch = message.pitch;
         cs.attitude.roll = message.roll;
         cs.attitude.yaw = message.yaw;
         let hud_roll = -message.roll;
         //let hud_roll = 0;
-        let pitch_movement = (message.pitch*0.9)-25;
+        let pitch_movement = (message.pitch*0.88)-26;
 
         let div = document.getElementById('moving-hud-panel');
         let div2 = document.getElementById('moving-hud-markings');
@@ -67,7 +83,7 @@ $(document).ready(function () {
         div.style.msTransform = 'rotate(' + hud_roll + 'deg)';
         div.style.oTransform = 'rotate(' + hud_roll + 'deg)';
         div.style.transform = 'rotate(' + hud_roll + 'deg)';
-        div2.style.transform = 'translateX(-50%) translateY(' + pitch_movement + '%)';
+        div2.style.transform = 'translateX(-57%) translateY(' + pitch_movement + '%)';
     });
 
     socket.on('location', function (coord) {
@@ -88,7 +104,6 @@ $(document).ready(function () {
 
     document.getElementsByName("auto_scroll_toggle")[0].addEventListener('change', function () {
         let is_checked = document.getElementsByName('auto_scroll_toggle')[0].checked;
-        console.log("Auto scroll messages: " + is_checked);
         if (is_checked) {
             auto_scroll_messages = true;
             document.getElementById('messages').scrollTop = 9999999;
@@ -175,13 +190,14 @@ $(document).ready(function () {
     // Update the status tab twice per second
     function updateStatusTab() {
         document.getElementById('status_airspeed').innerText = String(cs.airspeed);
-        document.getElementById('status_altitude').innerText = String(cs.altitude);
+        document.getElementById('status_altitude').innerText = String(cs.altitude_agl);
         document.getElementById('status_latitude').innerText = String(cs.lat);
         document.getElementById('status_longitude').innerText = String(cs.lng);
         document.getElementById('status_heading').innerText = String(cs.heading);
         document.getElementById('status_pitch').innerText = String(cs.attitude.pitch);
         document.getElementById('status_roll').innerText = String(cs.attitude.roll);
         document.getElementById('status_yaw').innerText = String(cs.attitude.yaw);
+        document.getElementById('status_ap_type').innerText = String(cs.ap_type);
         setTimeout(updateStatusTab, 500);
     }
 

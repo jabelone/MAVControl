@@ -38,14 +38,24 @@
     </div>
 </nav>
 
-<!--<div class="row center">
-    <h5 class="header col s12 light">A modern responsive front-end framework based on Material Design</h5>
-</div>-->
 <div id="main-row" class="grey lighten-4 no-padding row center">
 
     <div id="hud-panel" class="no-padding grey lighten-2 col">
         <div id="hud-row-upper" class="green lighten-2 row center">
             <div id="hud-panel-contents" class="no-padding col s12 m12 l12">
+                <div id="floating-scale-speed" class="floating-scales">
+                    <div id="floating-scale-pointer-speed" class="floating-scale-pointer">0 m/s</div>
+                </div>
+                <div id="floating-scale-altitude" class="floating-scales">
+                    <div id="floating-scale-pointer-altitude" class="floating-scale-pointer">0 m</div>
+                </div>
+                <div id="floating-mode" class="floating">
+                    <div id="floating-mode-text" class="floating">Unknown</div>
+                </div>
+                <div id="floating-armed" class="floating hide">
+                    <div id="floating-armed-text" class="floating">ARMED</div>
+                    <div id="floating-disarmed-text" class="floating hide">DISARMED</div>
+                </div>
                 <!-- HUD panel with artificial horizon etc -->
                 <div id="moving-hud-panel" class="no-padding">
                     <img id="moving-hud-bg" src="/static/img/artificial_horizon.svg"/>
@@ -155,7 +165,7 @@
                                 <!--<a class="waves-effect blue waves-light btn"></a>-->
                             </div>
                             <div class="col s12 m4 l2">
-                                <a id="arm_button" disabled class="waves-effect orange waves-light btn">ARM</a>
+                                <a id="arm_button" class="waves-effect orange waves-light btn">ARM</a>
                             </div>
                             <div class="col s12 m4 l2">
                                 <a id="disarm_button" class="waves-effect orange waves-light btn">DISARM</a>
@@ -239,27 +249,27 @@
                     </div>
                     <div id="status_tab" class="hud_tabs">
                         <div class="row">
-                            <div class="col s12 m6 l6"><span>Airspeed: </span><span id="status_airspeed"></span></div>
-                            <div class="col s12 m6 l6"><span>Altitude: </span><span id="status_altitude"></span></div>
+                            <div class="col s12 m6 l6"><span>Airspeed: </span><span id="status_airspeed"></span> m/s</div>
+                            <div class="col s12 m6 l6"><span>Altitude: </span><span id="status_altitude"></span> m</div>
                         </div>
                         <div class="row">
                             <div class="col s12 m6 l6"><span>Latitude: </span><span id="status_latitude"></span></div>
                             <div class="col s12 m6 l6"><span>Longitude: </span><span id="status_longitude"></span></div>
                         </div>
                         <div class="row">
-                            <div class="col s12 m6 l6"><span>Heading: </span><span id="status_heading"></span></div>
+                            <div class="col s12 m6 l6"><span>Heading: </span><span id="status_heading"></span> degrees</div>
+                            <div class="col s12 m6 l6"><span>Mode: </span><span id="status_mode"></span></div>
+                        </div>
+                        <div class="row">
+                            <div class="col s12 m6 l6"><span>Roll: </span><span id="status_roll"></span> degrees</div>
+                            <div class="col s12 m6 l6"><span>AP Type: </span><span id="status_ap_type"></span></div>
+                        </div>
+                        <div class="row">
+                            <div class="col s12 m6 l6"><span>Pitch: </span><span id="status_pitch"></span> degrees</div>
                             <div class="col s12 m6 l6"><span></span><span id="status_"></span></div>
                         </div>
                         <div class="row">
-                            <div class="col s12 m6 l6"><span>Roll: </span><span id="status_roll"></span></div>
-                            <div class="col s12 m6 l6"><span></span><span id="status_"></span></div>
-                        </div>
-                        <div class="row">
-                            <div class="col s12 m6 l6"><span>Pitch: </span><span id="status_pitch"></span></div>
-                            <div class="col s12 m6 l6"><span></span><span id="status_"></span></div>
-                        </div>
-                        <div class="row">
-                            <div class="col s12 m6 l6"><span>Yaw: </span><span id="status_yaw"></span></div>
+                            <div class="col s12 m6 l6"><span>Yaw: </span><span id="status_yaw"></span> degrees</div>
                             <div class="col s12 m6 l6"><span></span><span id="status_"></span></div>
                         </div>
                     </div>

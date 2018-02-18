@@ -1,10 +1,10 @@
 import time, math
 from pymavlink import mavutil
 import common_state as cs
+import utilities
 
 
 def heartbeat(packet):
-    cs.last_heartbeat = time.localtime()
     if packet.autopilot == mavutil.mavlink.MAV_AUTOPILOT_ARDUPILOTMEGA:
         cs.ap_type = "ArduPilot"
     elif packet.autopilot == mavutil.mavlink.MAV_AUTOPILOT_GENERIC:
@@ -16,19 +16,27 @@ def heartbeat(packet):
     else:
         cs.ap_type = "Unknown"
 
+    cs.vehicle_type = utilities.get_vehicle_string()
+    cs.last_heartbeat = time.localtime()
+    cs.vehicle_type_enum = packet.type
+    cs.mode_type_enum = packet.custom_mode
+    cs.mode = utilities.get_mode_string()
+    cs.socketio.emit('mode', cs.mode, namespace=cs.settings.Sockets.namespace)
+
 
 def location(packet):
-    cs.gps.lat = packet.lat
-    cs.gps.lon = packet.lon
+    cs.gps.lat = packet.lat/10000000
+    cs.gps.lon = packet.lon/10000000
     cs.gps.alt = packet.alt
-    cs.gps.relative_alt = packet.relative_alt
-    cs.gps.heading = packet.hdg
+    cs.gps.relative_alt = packet.relative_alt/1000
+    cs.gps.heading = packet.hdg/100
     cs.gps.vx = packet.vx
     cs.gps.vy = packet.vy
     cs.gps.vz = packet.vz
 
-    cs.socketio.emit('location', {"lat": cs.gps.lat/10000000, "lng": cs.gps.lon/10000000, "heading": packet.hdg/100},
+    cs.socketio.emit('location', {"lat": cs.gps.lat, "lng": cs.gps.lon, "heading": cs.gps.heading},
                      namespace=cs.settings.Sockets.namespace)
+    cs.socketio.emit('altitude_agl', cs.gps.relative_alt, namespace=cs.settings.Sockets.namespace)
 
 
 def status_text(packet):
@@ -51,14 +59,13 @@ def vfr_hud(packet):
     cs.socketio.emit('groundspeed', packet.groundspeed, namespace=cs.settings.Sockets.namespace)
     cs.socketio.emit('heading', packet.heading, namespace=cs.settings.Sockets.namespace)
     cs.socketio.emit('throttle', packet.throttle, namespace=cs.settings.Sockets.namespace)
-    cs.socketio.emit('altitude', packet.alt, namespace=cs.settings.Sockets.namespace)
     cs.socketio.emit('climb', packet.climb, namespace=cs.settings.Sockets.namespace)
+    cs.socketio.emit('ap_type', cs.ap_type, namespace=cs.settings.Sockets.namespace)
 
 def attitude(packet):
-
-    cs.attitude.pitch = packet.pitch*180/math.pi
-    cs.attitude.roll = packet.roll*180/math.pi
-    cs.attitude.yaw = packet.yaw*180/math.pi
+    cs.attitude.pitch = round(packet.pitch*180/math.pi, 2)
+    cs.attitude.roll = round(packet.roll*180/math.pi, 2)
+    cs.attitude.yaw = round(packet.yaw*180/math.pi, 2)
     cs.attitude.pitchspeed = packet.pitchspeed
     cs.attitude.rollspeed = packet.rollspeed
     cs.attitude.yawspeed = packet.yawspeed

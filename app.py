@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
-# This file was initially based on an example file from the Flask-SocketIO project.
 from threading import Lock
 from flask import Flask, render_template, session, request, url_for
 from flask_socketio import SocketIO, emit
 import sys, os, MAVControlSettings
 from pymavlink import mavutil
-import time
-from pymavlink.dialects.v10 import ardupilotmega as mavlink1
-from pymavlink.dialects.v20 import ardupilotmega as mavlink2
+import time, utilities
 import common_state as cs
 import handle_packets as handle
+
 
 cs.settings = MAVControlSettings.Settings()
 
@@ -53,11 +51,7 @@ def wait_for_heartbeat(mav_connection):
 def cb(packet, b=None, c=None, d=None):
     """This callback runs every time we get a new mavlink packet."""
     # This is undocumented so not 100% sure if this is the correct usage.
-    # print("cb: " + str(a)) # Useful for debugging purposes
-    # Next line will send all mavlink packets to the frontend
-    # socketio.emit('my_response', {'data': str(packet), }, namespace=cs.settings.Sockets.namespace)
-
-    # print(packet.get_type())
+    #print("cb: " + str(packet)) # Useful for debugging purposes
 
     if packet.get_type() == "HEARTBEAT":
         handle.heartbeat(packet)
@@ -70,6 +64,9 @@ def cb(packet, b=None, c=None, d=None):
 
     elif packet.get_type() == "ATTITUDE":
         handle.attitude(packet)
+
+    elif packet.get_type() == "STATUSTEXT":
+        handle.status_text(packet)
 
 
 wait_for_heartbeat(cs.mav)
@@ -91,7 +88,6 @@ def heartbeat_thread():
         cs.socketio.emit('heartbeat',
                          str(time.strftime('%H:%M:%S', cs.last_heartbeat)),
                          namespace=cs.settings.Sockets.namespace)
-        print("Type: " + str(cs.ap_type) + " Heartbeat: " + str(time.strftime('%Y-%m-%dT%H:%M:%SZ', cs.last_heartbeat)))
 
 
 @app.route('/')
@@ -145,17 +141,46 @@ def test_connect():
 
 @cs.socketio.on('arm', namespace=cs.settings.Sockets.namespace)
 def arm_vehicle():
-    cs.mav.motors_armed_wait()
-    print("armed maybe")
+    cs.mav.mav.command_long_send(
+        cs.target_system,  # target_system
+        0,
+        mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,  # command
+        0,  # confirmation
+        1,  # param1 (1 to indicate arm)
+        0, 0, 0, 0, 0, 0)
+    print("ARMED ARMED")
     emit('armed')
 
 
 @cs.socketio.on('disarm', namespace=cs.settings.Sockets.namespace)
-def arm_vehicle():
-    cs.mav.motors_disarmed_wait()
-    print("disarmed maybe")
+def disarm_vehicle():
+    cs.mav.mav.command_long_send(
+        cs.target_system,  # target_system
+        0,
+        mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,  # command
+        0,  # confirmation
+        0,  # param1 (0 to indicate disarm)
+        0, 0, 0, 0, 0, 0)
+
+    print("DISARMED DISARMED")
     emit('disarmed')
 
+@cs.socketio.on('do_change_speed', namespace=cs.settings.Sockets.namespace)
+def do_change_speed(type, speed, throttle):
+    test = cs.mav.mav.command_long_send(
+        cs.target_system,  # target_system
+        0,
+        mavutil.mavlink.MAV_CMD_DO_CHANGE_SPEED,  # command
+        0,  # confirmation
+        1,  # Speed Type (0=Airspeed, 1=Ground Speed)
+        0,  # Speed (m/s, -1 indicates no change)
+        0,  # Throttle ( Percent, -1 indicates no change)
+        0,  # absolute or relative [0,1]
+        0, 0, 0)
+
+    print("change speed return: ")
+    print(test)
+    emit('do_change_speed')
 
 if __name__ == '__main__':
     cs.socketio.run(app, debug=True)
