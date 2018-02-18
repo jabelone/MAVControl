@@ -19,6 +19,7 @@ To run on linux just use:
 ```
 ./app.py
 ```
+Open up any modern browser (chrome is the only one tested) and navigate to 127.0.0.1:5000
 
 Note: We only "officially" support python3 and Ubuntu linux at the moment. It should **theoretically** run on Windows/Mac OS but **it is not tested**. MAVControl currently prefers a screen resolution of around 1920x1080 or higher but will be made mobile/tablet friendly in the future.
 
