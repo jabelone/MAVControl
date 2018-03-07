@@ -19,6 +19,9 @@
     <script src="/static/js/leaflet.js"></script>
     <script type="text/javascript" src="/static/js/leaflet.rotatedMarker.js"></script>
     <!-- ^ Found here: https://github.com/bbecquet/Leaflet.RotatedMarker -->
+    <script type="text/javascript" src="/static/js/localforage.min.js"></script>
+    <script type="text/javascript" src="/static/js/leaflet-offline.js"></script>
+    <!-- Found here: https://github.com/robertomlsoares/leaflet-offline -->
 </head>
 <body>
 
@@ -29,6 +32,7 @@
         </span>
         <ul class="right hide-on-med-and-down">
             <li><a class="white-text modal-trigger" href="#modal_conn_settings">Connection Settings</a></li>
+            <li><a class="white-text modal-trigger" href="#modal_cache_maps">Cache Map</a></li>
         </ul>
 
         <ul id="nav-mobile" class="side-nav">
@@ -43,6 +47,9 @@
     <div id="hud-panel" class="no-padding grey lighten-2 col">
         <div id="hud-row-upper" class="green lighten-2 row center">
             <div id="hud-panel-contents" class="no-padding col s12 m12 l12">
+                <div id="floating-scale-heading" class="floating-scales">
+                    <div id="floating-scale-pointer-heading" class="floating-scale-pointer">0 m/s</div>
+                </div>
                 <div id="floating-scale-speed" class="floating-scales">
                     <div id="floating-scale-pointer-speed" class="floating-scale-pointer">0 m/s</div>
                 </div>
@@ -52,14 +59,14 @@
                 <div id="floating-mode" class="floating">
                     <div id="floating-mode-text" class="floating">Unknown</div>
                 </div>
-                <div id="floating-armed" class="floating hide">
-                    <div id="floating-armed-text" class="floating">ARMED</div>
-                    <div id="floating-disarmed-text" class="floating hide">DISARMED</div>
+                <div id="floating-armed" class="floating">
+                    <div id="floating-armed-text" style="display: none;" class="">ARMED</div>
+                    <div id="floating-disarmed-text" style="display: none;" class="">DISARMED</div>
                 </div>
                 <!-- HUD panel with artificial horizon etc -->
+                <img id="stationary-hud-markings" src="/static/img/HUD_stationary.svg"/>
                 <div id="moving-hud-panel" class="no-padding">
                     <img id="moving-hud-bg" src="/static/img/artificial_horizon.svg"/>
-                    <img id="moving-hud-markings" src="/static/img/hud_markings.svg"/>
                 </div>
             </div>
         </div>
@@ -249,7 +256,8 @@
                     </div>
                     <div id="status_tab" class="hud_tabs">
                         <div class="row">
-                            <div class="col s12 m6 l6"><span>Airspeed: </span><span id="status_airspeed"></span> m/s</div>
+                            <div class="col s12 m6 l6"><span>Airspeed: </span><span id="status_airspeed"></span> m/s
+                            </div>
                             <div class="col s12 m6 l6"><span>Altitude: </span><span id="status_altitude"></span> m</div>
                         </div>
                         <div class="row">
@@ -257,7 +265,8 @@
                             <div class="col s12 m6 l6"><span>Longitude: </span><span id="status_longitude"></span></div>
                         </div>
                         <div class="row">
-                            <div class="col s12 m6 l6"><span>Heading: </span><span id="status_heading"></span> degrees</div>
+                            <div class="col s12 m6 l6"><span>Heading: </span><span id="status_heading"></span> degrees
+                            </div>
                             <div class="col s12 m6 l6"><span>Mode: </span><span id="status_mode"></span></div>
                         </div>
                         <div class="row">
@@ -391,6 +400,24 @@
             <a id="update_connection_settings" href="#!" class="waves-effect waves-light btn">
                 <i id="update_connection_settings" class="material-icons right">save</i>Save
             </a>
+        </div>
+    </div>
+
+    <!-- Map Cache Modal-->
+    <div id="modal_cache_maps" class="modal">
+        <div class="modal-content black-text">
+            <h4>Cache maps for offline use</h4>
+            <p>Here you can check the progress of an existing download, the storage being used or delete all cached maps.</p>
+            <p>Progress: <span id="progress"></span> / <span id="total"></span></p>
+            <p>Current storage: <span id="storage"></span> files</p>
+            <button class="btn red" id="remove_tiles">
+                <i class="material-icons">delete_forever</i>
+            </button>
+            <br><br>
+            <p>To pre-cache tiles, click on the download icon inside the map.</p>
+        </div>
+        <div class="modal-footer">
+            <a href="#!" class="modal-action modal-close waves-effect waves-green btn-flat">Close</a>
         </div>
     </div>
 

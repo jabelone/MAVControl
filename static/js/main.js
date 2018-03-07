@@ -44,6 +44,14 @@ $(document).ready(function () {
         document.getElementById('floating-scale-pointer-speed').innerText = String(Math.round(cs.airspeed)) + " m/s";
     });
 
+    socket.on('do_change_speed', function (speed) {
+        Materialize.toast("Set target speed to " + speed, 3000);
+    });
+
+    socket.on('change_mode', function (mode) {
+        Materialize.toast("Set mode to " + mode, 3000);
+    });
+
     socket.on('altitude_agl', function (message) {
         cs.altitude_agl = parseFloat(message).toFixed(2);
         document.getElementById('floating-scale-pointer-altitude').innerText = String(Math.round(cs.altitude_agl)) + " m";
@@ -53,14 +61,24 @@ $(document).ready(function () {
         cs.mode = message;
         document.getElementById('status_mode').innerText = cs.mode;
         document.getElementById('floating-mode-text').innerText = cs.mode;
-    });
+    })
 
     socket.on('armed', function (message) {
         Materialize.toast('ARMED!!', 2000);
+        document.getElementById('floating-armed-text').style.display = "";
+        document.getElementById('floating-disarmed-text').style.display = "none";
+        setTimeout(function () {
+            document.getElementById('floating-armed-text').style.display = "none";
+        }, 5000);
     });
 
     socket.on('disarmed', function (message) {
         Materialize.toast('DISARMED!!', 2000);
+        document.getElementById('floating-armed-text').style.display = "none";
+        document.getElementById('floating-disarmed-text').style.display = "";
+        setTimeout(function () {
+            document.getElementById('floating-disarmed-text').style.display = "none";
+        }, 5000);
     });
 
     socket.on('ap_type', function (message) {
@@ -73,17 +91,17 @@ $(document).ready(function () {
         cs.attitude.yaw = message.yaw;
         let hud_roll = -message.roll;
         //let hud_roll = 0;
-        let pitch_movement = (message.pitch*0.88)-26;
+        let pitch_movement = (message.pitch * 0.426) - 50;
 
-        let div = document.getElementById('moving-hud-panel');
-        let div2 = document.getElementById('moving-hud-markings');
+        let movingPanel = document.getElementById('moving-hud-panel');
+        let movingBG = document.getElementById('moving-hud-bg');
 
-        div.style.webkitTransform = 'rotate(' + hud_roll + 'deg)';
-        div.style.mozTransform = 'rotate(' + hud_roll + 'deg)';
-        div.style.msTransform = 'rotate(' + hud_roll + 'deg)';
-        div.style.oTransform = 'rotate(' + hud_roll + 'deg)';
-        div.style.transform = 'rotate(' + hud_roll + 'deg)';
-        div2.style.transform = 'translateX(-57%) translateY(' + pitch_movement + '%)';
+        movingPanel.style.webkitTransform = 'rotate(' + hud_roll + 'deg)';
+        movingPanel.style.mozTransform = 'rotate(' + hud_roll + 'deg)';
+        movingPanel.style.msTransform = 'rotate(' + hud_roll + 'deg)';
+        movingPanel.style.oTransform = 'rotate(' + hud_roll + 'deg)';
+        movingPanel.style.transform = 'rotate(' + hud_roll + 'deg)';
+        movingBG.style.transform = 'translateX(-50%) translateY(' + pitch_movement + '%)';
     });
 
     socket.on('location', function (coord) {
@@ -98,7 +116,11 @@ $(document).ready(function () {
     socket.on('status_text', function (message) {
         $('#messages').append($('<div/>').text(new Date().toLocaleTimeString() + " - " + message.text).html() + '<br>');
         if (auto_scroll_messages) {
-            document.getElementById('messages').scrollTop = document.getElementById('messages').offsetHeight;
+            document.getElementById('messages').scrollTop = 999999;
+        }
+        special_messages = [];
+        if (special_messages.indexOf(message.text) > -1) {
+
         }
     });
 
