@@ -14,26 +14,30 @@ nav, footer {
     height: 100%;
     transform: rotate(0deg);
 
-    -webkit-transition: all 0.2s linear;
-    -moz-transition: all 0.2s linear;
-    -o-transition: all 0.2s linear;
-    transition: all 0.2s linear;
+    -webkit-transition: all 0.3s ease-out;
+    -moz-transition: all 0.3s ease-out;
+    -o-transition: all 0.3s ease-out;
+    transition: all 0.3s ease-out;
 }
 
 #moving-hud-bg {
-    transform: translate(-50%, -38%);
     position: absolute;
+    top: 50%;rotate(-3.42deg)
+    left: 50%;
+    transform: translate(-50%,-50%);
+
+    -webkit-transition: all 0.3s ease-out;
+    -moz-transition: all 0.3s ease-out;
+    -o-transition: all 0.3s ease-out;
+    transition: all 0.3s ease-out;
 }
 
-#moving-hud-markings {
-    margin-right: 30px;
+#stationary-hud-markings {
+    top: 50%;
+    left: 50%;
     position: absolute;
-    transform: translate(-56%, -25%);
-}
-
-#moving-hud-bottom {
-    height: 700px;
-    width: 1000px;
+    transform: translate(-50%, -50%);
+    z-index: 1;
 }
 
 #hud-row-lower {
@@ -89,8 +93,9 @@ div.input-field {
 }
 
 #hud-panel-contents {
-    height: 50vh;
+    height: 43vh;
     position: relative;
+    margin-top: 7vh;
 }
 
 a[href^="http://maps.google.com/maps"] {
@@ -140,7 +145,7 @@ a[href^="https://maps.google.com/maps"] {
 }
 
 .navigation {
-    min-height: 7vh;
+    height: 7vh;
     position: absolute;
     z-index: 1;
 }
@@ -210,11 +215,10 @@ a[href^="https://maps.google.com/maps"] {
     width: 5vw;
     background-color: #00000050;
     color: #fff;
-    font-size: 1.2em;
+    font-size: 1.1em;
     top: 50%;
     z-index: 1;
     transform: translateY(-50%);
-    margin-top: 4vh;
 }
 
 .floating-scale-pointer {
@@ -240,5 +244,8 @@ a[href^="https://maps.google.com/maps"] {
 }
 
 #floating-armed {
-    right: 45%;
+    right: 40%;
+    color: red;
+    background: yellow;
+    font-size: 2em;
 }
