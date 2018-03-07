@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from threading import Lock
-from flask import Flask, render_template, session, request, url_for
+from flask import Flask, render_template, session
 from flask_socketio import SocketIO, emit
 import sys, os, MAVControlSettings
 from pymavlink import mavutil
@@ -8,13 +8,12 @@ import time, utilities
 import common_state as cs
 import handle_packets as handle
 
-
 cs.settings = MAVControlSettings.Settings()
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = cs.settings.Frontend.password
 cs.socketio = SocketIO(app, async_mode=cs.settings.Sockets.async_mode)
-
+print(mavutil.mode_mapping_apm[17])
 
 # These threads are needed to keep everything running smoothly. The "mavlink" thread runs recv_match() very quickly in
 # order to process new mavlink packets and initiate the callback. The "heartbeat" thread does all the 1 second timed
@@ -51,7 +50,7 @@ def wait_for_heartbeat(mav_connection):
 def cb(packet, b=None, c=None, d=None):
     """This callback runs every time we get a new mavlink packet."""
     # This is undocumented so not 100% sure if this is the correct usage.
-    #print("cb: " + str(packet)) # Useful for debugging purposes
+    # print("cb: " + str(packet)) # Useful for debugging purposes
 
     if packet.get_type() == "HEARTBEAT":
         handle.heartbeat(packet)
@@ -148,8 +147,6 @@ def arm_vehicle():
         0,  # confirmation
         1,  # param1 (1 to indicate arm)
         0, 0, 0, 0, 0, 0)
-    print("ARMED ARMED")
-    emit('armed')
 
 
 @cs.socketio.on('disarm', namespace=cs.settings.Sockets.namespace)
@@ -162,25 +159,54 @@ def disarm_vehicle():
         0,  # param1 (0 to indicate disarm)
         0, 0, 0, 0, 0, 0)
 
-    print("DISARMED DISARMED")
-    emit('disarmed')
 
 @cs.socketio.on('do_change_speed', namespace=cs.settings.Sockets.namespace)
-def do_change_speed(type, speed, throttle):
-    test = cs.mav.mav.command_long_send(
+def do_change_speed(speed_type, speed, throttle):
+    if speed_type == "airspeed":
+        speed_type = 0
+    elif speed_type == "groundspeed":
+        speed_type = 1
+
+    cs.mav.mav.command_long_send(
         cs.target_system,  # target_system
         0,
         mavutil.mavlink.MAV_CMD_DO_CHANGE_SPEED,  # command
         0,  # confirmation
-        1,  # Speed Type (0=Airspeed, 1=Ground Speed)
-        0,  # Speed (m/s, -1 indicates no change)
-        0,  # Throttle ( Percent, -1 indicates no change)
+        float(speed_type),  # Speed Type (0=Airspeed, 1=Ground Speed)
+        float(speed),  # Speed (m/s, -1 indicates no change)
+        float(throttle),  # Throttle ( Percent, -1 indicates no change)
         0,  # absolute or relative [0,1]
         0, 0, 0)
+    emit('do_change_speed', speed)
 
-    print("change speed return: ")
-    print(test)
-    emit('do_change_speed')
+@cs.socketio.on('change_mode', namespace=cs.settings.Sockets.namespace)
+def do_change_speed(mode):
+    cs.mav.mav.command_long_send(
+        cs.target_system,  # target_system
+        0,
+        mavutil.mavlink.MAV_CMD_DO_SET_MODE,  # command
+        0,  # confirmation
+        0,  #
+        0,  #
+        0,  #
+        0,  #
+        0, 0, 0)
+    emit('change_mode', mode)
+
+@cs.socketio.on('template', namespace=cs.settings.Sockets.namespace)
+def template(message):
+    cs.mav.mav.command_long_send(
+        cs.target_system,  # target_system
+        0,
+        mavutil.mavlink.MAV_CMD_DO_SET_MODE,  # command
+        0,  # confirmation
+        0,  # param 1
+        0,  #
+        0,  #
+        0,  #
+        0, 0, 0)
+    emit('template', message)
+
 
 if __name__ == '__main__':
     cs.socketio.run(app, debug=True)
