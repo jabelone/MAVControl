@@ -41,10 +41,15 @@ def location(packet):
 
 def status_text(packet):
     message = packet.text.rstrip('\x00'.encode())
+    message = message.decode("utf-8")
     if cs.last_status_text == message:
         return
+    if message == "Throttle armed" or message == "Arming motors":
+        cs.socketio.emit('armed', True, namespace=cs.settings.Sockets.namespace)
+    if message == "Throttle disarmed" or message == "Disarming motors":
+        cs.socketio.emit('disarmed', True, namespace=cs.settings.Sockets.namespace)
     print(message)
-    cs.socketio.emit('status_text', {"text": message.decode("utf-8")}, namespace=cs.settings.Sockets.namespace)
+    cs.socketio.emit('status_text', {"text": message}, namespace=cs.settings.Sockets.namespace)
     cs.last_status_text = message
 
 def vfr_hud(packet):
