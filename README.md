@@ -21,7 +21,10 @@ To run on linux just use:
 ```
 Open up any modern browser (chrome is the only one tested) and navigate to 127.0.0.1:5000
 
+# Notes
 Note: We only "officially" support python3 and Ubuntu linux at the moment. It should **theoretically** run on Windows/Mac OS but **it is not tested**. MAVControl currently prefers a screen resolution of around 1920x1080 or higher but will be made mobile/tablet friendly in the future.
 
-# Current State
+For testing purposes SITL is extremely useful. SITL stands for **S**oftware **I**n **T**he **L**oop simulation. You can simulate any ardupilot vehicle on your local computer. MAVControl should work out of the box with the default config of SITL. For information on setting up SITL see [here](http://ardupilot.org/dev/docs/sitl-simulator-software-in-the-loop.html).
+
+# Current State (severely lacking features)
 ![screenshot](https://github.com/jabelone/MAVControl/raw/master/screenshot.png)
