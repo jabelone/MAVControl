@@ -1,7 +1,14 @@
 # MAVControl
 My very much WIP (work in progress) in browser ground control station for ardu things. It's still missing major functionality like a fully detailed HUD etc but I'm actively working on it. Front end is completely in the browser and uses sockets to connect to a python backend. Not mobile/small screen friendly yet but frontend should theoretically run on any device with an up to date web browser.
 
-note: most of the buttons are attached to callbacks and will give you notifications etc but sending the actual mavlink packets have not been implemented on some of them at the moment.
+Most of the buttons are attached to callbacks and will give you notifications etc but sending the actual mavlink packets have not been implemented on some of them at the moment. The layout and funtionality is heavily inspired by the great work Michael has done on [Mission Planner](https://github.com/ArduPilot/MissionPlanner).
+
+# Goals
+Mission Planner is great, but a little too unstable to use during flight ops. These are the current goals of MAVControl:
+* Stability during flight ops - GCS software should be extremely reliable.
+* Cross platform compatibility - good support for Ubuntu, macOS & Windows.
+* Copy the good parts from Mission Planner - general layout, features, etc.
+* Don't copy stuff Mission Planner does well - vehicle setup, waypoint planning, etc.
 
 # Installation
 It's super easy to install and get running. Just clone the git repo:
