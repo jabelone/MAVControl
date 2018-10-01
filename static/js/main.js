@@ -8,6 +8,51 @@ let delay = 10; //milliseconds
 let i = 0;
 let auto_scroll_messages = true;
 
+// TODO: these should probably be retreive from an env variable
+Cesium.BingMapsApi.defaultKey = 'AuH6cuhWnxa9_mROL0JkjUikRyvmWlrGSOB0zGmoq_pVGOu2GGkOMbGMgSxsded5';
+Cesium.MapboxApi.defaultAccessToken = 'pk.eyJ1IjoiamFiZWxvbmUiLCJhIjoiY2pmM2NiczNuMGtwaTJ4cGRoOHhlZHJ0YiJ9.Jf4p2BNYSmriWE5YMNZjPg';
+Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI3ZDgzNGIzYy1jOTFiLTQ4ZTYtOGRmYy1mYzIzZDRjM2I1Y2MiLCJpZCI6MzE4MCwiaWF0IjoxNTM2MjM4NjAwfQ.FggWP7EQBZVPEEmgvXnUvplyJ5JCNGRWqfhUIDSujuY';
+
+
+// Functions to adapt screen space error and memory use to the device
+let isMobile = {
+    Android: function () {
+        return navigator.userAgent.match(/Android/i);
+    },
+    BlackBerry: function () {
+        return navigator.userAgent.match(/BlackBerry/i);
+    },
+    iOS: function () {
+        return navigator.userAgent.match(/iPhone|iPad|iPod/i);
+    },
+    Opera: function () {
+        return navigator.userAgent.match(/Opera Mini/i);
+    },
+    Windows: function () {
+        return navigator.userAgent.match(/IEMobile/i);
+    },
+    any: function () {
+        return (isMobile.Android() || isMobile.BlackBerry() || isMobile.iOS() || isMobile.Opera() || isMobile.Windows());
+    }
+};
+
+// Construct the main Cesium viewer with default options
+let viewer = new Cesium.Viewer('cesiumContainer', {
+    timeline: false, // disable the timeline feature
+    animation: false, // disable time animations
+    vrButton: true, // enable the VR button
+    sceneModePicker: false, // disable the scene mode picker
+    infoBox: false, // disable the info box
+    scene3DOnly: true, // lock the viewer to 3D only
+    shadows: !enableShadows, // set default shadows behaviour
+    projectionPicker: false, // disable the projection picker
+    baseLayerPicker: false, // disable the base layer picker
+    geocoder: false, // disable the search box
+});
+
+viewer.scene.globe.depthTestAgainstTerrain = false; // No depth testing against the terrain
+
+
 // ================== Socket IO init stuff ==================
 let namespace = '/MAVControl';
 let socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port + namespace);
@@ -22,14 +67,14 @@ function updateMapLocation() {
     }
 
     // Set our rotation
-    planeMarker.setRotationAngle(cs.heading);
+    // planeMarker.setRotationAngle(cs.heading);
 
     // Set our location
-    planeMarker.setLatLng(cs.location);
-    leafletmap.setView(cs.location);
+    // planeMarker.setLatLng(cs.location);
+    // leafletmap.setView(cs.location);
 
     // Update flight path
-    flightPath.setLatLngs(locationHistory);
+    // flightPath.setLatLngs(locationHistory);
 
 }
 
@@ -109,7 +154,7 @@ $(document).ready(function () {
         cs.lat = coord.lat;
         cs.lng = coord.lng;
         cs.location = [coord.lat, coord.lng];
-        updateMapLocation();
+        // updateMapLocation();
     });
 
     // ====== Handle Messages ======

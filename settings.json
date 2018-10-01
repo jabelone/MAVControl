@@ -1,7 +1,7 @@
 {
     "MavConnection": {
         "ip": "127.0.0.1",
-        "port": "14550",
+        "port": "14551",
         "mavlink_version": "2"
     },
     "Sockets": {
