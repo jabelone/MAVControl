@@ -1,15 +1,23 @@
 socketio = None
-settings = None
-last_heartbeat = None
-ap_type = None
-mode_type_enum = None
-mode = None
 vehicle_type_enum = None
-vehicle_type = None
-last_status_text = None
-mav = None
-target_system = 0
-target_component = 0
+settings = None
+mode_type_enum = None
+current_vehicle = None
+states = {}
+
+class vehicle:
+    last_heartbeat = None
+    ap_type = None
+    mode = None
+    vehicle_type = None
+    last_status_text = None
+    mav = None
+    target_system = 0
+    target_component = 0
+    sysid = 0
+    gps = None
+    attitude=None
+
 
 
 class gps:
@@ -20,6 +28,7 @@ class gps:
     vy = None
     vz = None
     heading = None
+    relative_alt = None
 
 
 class attitude:

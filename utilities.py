@@ -3,7 +3,7 @@ from pymavlink import mavutil
 mavlink = mavutil.mavlink
 
 
-def get_vehicle_string():
+def get_vehicle_string(sysid):
     copter_values = [mavlink.MAV_TYPE_QUADROTOR,
                      mavlink.MAV_TYPE_COAXIAL,
                      mavlink.MAV_TYPE_HELICOPTER,
@@ -20,12 +20,13 @@ def get_vehicle_string():
         return "Copter"
 
 
-def get_mode_string():
-    if cs.vehicle_type is not None and cs.mode_type_enum is not None:
-        if cs.vehicle_type == "Plane":
+def get_mode_string(sysid):
+
+    if cs.states[sysid].vehicle_type is not None and cs.mode_type_enum is not None:
+        if cs.states[sysid].vehicle_type == "Plane":
             mode = mavutil.mode_mapping_apm[cs.mode_type_enum]
             return mode
-        if cs.vehicle_type == "Copter":
+        if cs.states[sysid].vehicle_type == "Copter":
             mode = mavutil.mode_mapping_acm[cs.mode_type_enum]
             return mode
 

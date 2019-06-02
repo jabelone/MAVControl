@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from threading import Lock
-from flask import Flask, render_template, session
-from flask_socketio import SocketIO, emit
+from flask import Flask, render_template, session, send_from_directory
+from flask_socketio import SocketIO, emit, disconnect
 import sys, os, MAVControlSettings
 from pymavlink import mavutil
 import time, utilities
@@ -46,11 +46,30 @@ def wait_for_heartbeat(mav_connection):
     print("Heartbeat from APM (system %u component %u)" % (mav_connection.target_system, mav_connection.target_system))
     cs.last_heartbeat = time.localtime()
 
+id_list = []
 
 def cb(packet, b=None, c=None, d=None):
     """This callback runs every time we get a new mavlink packet."""
-    # This is undocumented so not 100% sure if this is the correct usage.
-    # print("cb: " + str(packet)) # Useful for debugging purposes
+    global id_list
+
+    #print("cb: " + str(packet)) # Useful for debugging purposes
+
+    # int
+    incoming_sysid = packet.get_srcSystem()
+
+    if incoming_sysid not in id_list:
+        # This is undocumented so not 100% sure if this is the correct usage.
+        print("Found NEW Sysid:" + str(incoming_sysid)) # Useful for debugging purposes
+        #print("cb: " + str(packet)) # Useful for debugging purposes
+        id_list.append(incoming_sysid)
+
+    handle.switch_current_if_needed(incoming_sysid)
+
+    # store id from header into main packet state for convenience and downstream use
+    if ( incoming_sysid != 0 ):
+        packet.sysid = incoming_sysid 
+    else:
+        packet.sysid = None
 
     if packet.get_type() == "HEARTBEAT":
         handle.heartbeat(packet)
@@ -94,18 +113,23 @@ def index():
     return render_template('index.html', async_mode=cs.socketio.async_mode, page_name=cs.settings.Frontend.name,
                            python_version=sys.version)
 
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(os.path.join(app.root_path, 'static'),
+                               'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
 @app.route('/pitch')
 def pitch_url():
-    cs.socketio.emit('attitude', {'pitch': 10, 'roll': cs.attitude.roll, 'yaw': cs.attitude.yaw},
+    cs.socketio.emit('attitude', {'pitch': 10, 'roll': cs.states[current_vehicle].attitude.roll, 'yaw': cs.states[current_vehicle].attitude.yaw},
                      namespace=cs.settings.Sockets.namespace)
     return "ok done"
 
 
 @cs.socketio.on('update_connection_settings', namespace=cs.settings.Sockets.namespace)
-def update_connection_settings(ip, port):
+def update_connection_settings(ip, port, initial_sysid):
     cs.settings.MavConnection.ip = ip
-    cs.settings.MavConnection.port = port
+    cs.settings.MavConnection.port = port    
+    cs.settings.MavConnection.initial_sysid = initial_sysid
     cs.settings.save()
     cs.socketio.emit('conn_update_success', namespace=cs.settings.Sockets.namespace)
     cs.socketio.sleep(0.1)
@@ -123,7 +147,7 @@ def test_message(message):
 def ping_pong():
     emit('my_pong')
 
-
+# connect only seems to be used on FIRST socket connect....
 @cs.socketio.on('connect', namespace=cs.settings.Sockets.namespace)
 def test_connect():
     global threads
@@ -135,7 +159,17 @@ def test_connect():
         if threads.heartbeat_thread is None:
             threads.heartbeat_thread = cs.socketio.start_background_task(target=heartbeat_thread)
 
-    emit('my_response', {'data': 'Connected', 'count': 0})
+    emit('reconnect', {'data': 'Connected', 'count': 0, 'initial_sysid': cs.settings.MavConnection.initial_sysid})
+
+
+@cs.socketio.on('disconnect', namespace=cs.settings.Sockets.namespace)
+def disconnect():
+    print('Client disconnected')
+    global threads
+
+    #disconnect()  # tears down the current socket explicitly so its not reused, causing a 'connect' event every time.
+
+    #emit('disconnect', {'data': 'DisConnected', 'count': 0, 'initial_sysid': cs.settings.MavConnection.initial_sysid})
 
 
 @cs.socketio.on('arm', namespace=cs.settings.Sockets.namespace)
@@ -161,14 +195,17 @@ def disarm_vehicle():
 
 
 @cs.socketio.on('do_change_speed', namespace=cs.settings.Sockets.namespace)
-def do_change_speed(speed_type, speed, throttle):
+def do_change_speed(sysid,speed_type, speed, throttle):
     if speed_type == "airspeed":
         speed_type = 0
     elif speed_type == "groundspeed":
         speed_type = 1
 
+    if speed == "" :
+         return  # cant change speed without a speed.
+
     cs.mav.mav.command_long_send(
-        cs.target_system,  # target_system
+        sysid,  # target_system = the one we are looking at.
         0,
         mavutil.mavlink.MAV_CMD_DO_CHANGE_SPEED,  # command
         0,  # confirmation
@@ -178,6 +215,23 @@ def do_change_speed(speed_type, speed, throttle):
         0,  # absolute or relative [0,1]
         0, 0, 0)
     emit('do_change_speed', speed)
+
+@cs.socketio.on('do_change_altitude', namespace=cs.settings.Sockets.namespace)
+def do_change_altitude(sysid,alt):
+
+    if alt == "":
+        return  # cant change alt without a value.
+
+    cs.mav.mav.command_long_send(
+        sysid,  # target_system = the one we are looking at.
+        0,
+        mavutil.mavlink.MAV_CMD_DO_CHANGE_ALT,  # command
+        0,  # confirmation
+
+        float(alt),3,0,0,0,0, 0); # 3 = MAV_FRAME_GLOBAL_RELATIVE_ALT, see https://mavlink.io/en/messages/common.html#MAV_FRAME
+
+    emit('do_change_altitude', alt)
+
 
 @cs.socketio.on('change_mode', namespace=cs.settings.Sockets.namespace)
 def do_change_speed(mode):

@@ -32,7 +32,8 @@
         </span>
         <ul class="right hide-on-med-and-down">
             <li><a class="white-text modal-trigger" href="#modal_conn_settings">Connection Settings</a></li>
-            <li><a class="white-text modal-trigger" href="#modal_cache_maps">Cache Map</a></li>
+            <li><a class="white-text modal-trigger" href="#modal_cache_maps">Cache Map</a></li>            
+            <li><a class="white-text modal-trigger" href="#modal_cache_sysid">Aircraft ID: <span id="sysid">0</span></a></li>
         </ul>
 
         <ul id="nav-mobile" class="side-nav">
@@ -366,13 +367,15 @@
         </div>
     </div>
 
+
+
     <!-- Connection Settings Modal-->
     <div id="modal_conn_settings" class="modal">
         <div class="modal-content black-text">
             <h4>Connection Settings</h4>
             <p>Please specify a UDP IP and port to bind to. As soon as data is received we'll connect to the MAV.
             <div class="chip">
-                <span class="orange-text text-darken-2">The backend will restart to apply changes when you click save!</span>
+                <span class="orange-text text-darken-2">The backend will restart to apply changes FOR EVERYONE when you click save!</span>
                 <i class="close material-icons">close</i>
             </div>
 
@@ -389,6 +392,13 @@
                             <input id="update_connection_settings_port" type="text" class="validate">
                             <label for="update_connection_settings_port">Port Number</label>
                         </div>
+                        &nbsp;
+                        <hr>
+                        &nbsp;
+                        <div class="input-field col s12">
+                            <input id="update_connection_settings_sysid" type="text" class="validate">
+                            <label for="update_connection_settings_sysid">Aircraft SysID ( to make active for your session only, change number and click CLOSE)</label>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -396,9 +406,9 @@
             </p>
         </div>
         <div class="modal-footer">
-            <a href="#!" class="modal-action modal-close waves-effect waves-green btn-flat">Close</a>
+            <a href="#!" class="modal-action modal-close waves-effect waves-green btn-flat" id="close_connection_settings" >Close and Use Locally</a>
             <a id="update_connection_settings" href="#!" class="waves-effect waves-light btn">
-                <i id="update_connection_settings" class="material-icons right">save</i>Save
+                <i id="update_connection_settings" class="material-icons right">save</i>Save GLobally
             </a>
         </div>
     </div>
