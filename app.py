@@ -205,7 +205,7 @@ def do_change_speed(sysid,speed_type, speed, throttle):
          return  # cant change speed without a speed.
 
     cs.mav.mav.command_long_send(
-        sysid,  # target_system = the one we are looking at.
+        int(sysid),  # target_system = the one we are looking at.
         0,
         mavutil.mavlink.MAV_CMD_DO_CHANGE_SPEED,  # command
         0,  # confirmation
@@ -223,9 +223,9 @@ def do_change_altitude(sysid,alt):
         return  # cant change alt without a value.
 
     cs.mav.mav.command_long_send(
-        sysid,  # target_system = the one we are looking at.
+        int(sysid),  # target_system = the one we are looking at.
         0,
-        mavutil.mavlink.MAV_CMD_DO_CHANGE_ALT,  # command
+        mavutil.mavlink.MAV_CMD_DO_CHANGE_ALTITUDE,  # command
         0,  # confirmation
 
         float(alt),3,0,0,0,0, 0); # 3 = MAV_FRAME_GLOBAL_RELATIVE_ALT, see https://mavlink.io/en/messages/common.html#MAV_FRAME

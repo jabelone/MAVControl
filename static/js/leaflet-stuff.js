@@ -53,8 +53,8 @@ leafletmap.setView(defaultMapLocation, 18);
 //}).addTo(leafletmap);
 
 // create a red polyline from an array of LatLng points
-xx = []
 flightPath = L.polyline(xx, {color: 'red'}).addTo(leafletmap);
+flightPath = L.polyline([], {color: 'red'}).addTo(leafletmap);
 
 
 let layer = L.tileLayer('https://api.mapbox.com/styles/v1/jabelone/cjcd5slq139jx2sqmzjg2ivmd/tiles/256/{z}/{x}/{y}?access_token=pk.eyJ1IjoiamFiZWxvbmUiLCJhIjoiY2pjZDVyYjBhMDl5ZjJxbXQ2Y21nbW83NyJ9.GmU38VLHRzMb17bZMEarDg',  {

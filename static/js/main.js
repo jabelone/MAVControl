@@ -1,4 +1,4 @@
-let map, icon, flightPath;
+let map, icon; //, flightPath;
 //let locationHistory = [];
 let maxPathHistory = 300;
 //let attitude = {roll: 0, pitch: 0, yaw: 0};
@@ -10,6 +10,7 @@ let current_vehicle = 0; // only changed by user selection?
 //states[current_vehicle].attitude = {roll: 0, pitch: 0, yaw: 0};
 //states[current_vehicle].cs = {location: 0, lat: 0, lng: 0, heading: 0, airspeed: 0, altitude_agl: 0, attitude: states[current_vehicle].attitude, ap_type: null};
 //states[current_vehicle].locationHistory = [];
+//states[current_vehicle].flightPath = null;
 
 let delay = 10; //milliseconds
 let i = 0;
@@ -46,7 +47,7 @@ function updateMapLocation(current_vehicle) {
     } 
 
     // Update flight path
-    flightPath.setLatLngs(states[current_vehicle].locationHistory);
+    states[current_vehicle].flightPath.setLatLngs(states[current_vehicle].locationHistory);
 
 }
 
@@ -85,7 +86,7 @@ $(document).ready(function () {
     });
 
     socket.on('do_change_speed', function (speed) {
-        Materialize.toast("Set target speed to " + speed, 3000);
+        //Materialize.toast("Set target speed to " + speed, 3000); // done in actions_tab.js
     });
 
     socket.on('change_mode', function (mode) {
@@ -179,7 +180,7 @@ $(document).ready(function () {
             states[tmp_current_vehicle].locationHistory = [];
         }
         if  (!( "planeMarker" in states[tmp_current_vehicle] )){
-            x = tmp_current_vehicle%7; // pick a color
+            x = tmp_current_vehicle%7; // pick a color from the 7 avail
             states[tmp_current_vehicle].planeMarker = L.marker(defaultMapLocation, {
                 icon: iconlist[x], rotationOrigin: "center center",
                 title: "id:"+tmp_current_vehicle
@@ -188,6 +189,9 @@ $(document).ready(function () {
             }).addTo(leafletmap);
         }
 
+        if (!( "flightPath" in states[tmp_current_vehicle] )){
+             states[tmp_current_vehicle].flightPath = L.polyline([], {color: 'red'}).addTo(leafletmap);
+        } 
         states[tmp_current_vehicle].cs.heading = coord.heading;
         states[tmp_current_vehicle].cs.lat = coord.lat;
         states[tmp_current_vehicle].cs.lng = coord.lng;

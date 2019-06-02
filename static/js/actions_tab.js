@@ -49,7 +49,7 @@ $(document).ready(function () {
     // Set Airspeed
     document.getElementById("change_speed_button").addEventListener('click', function () {
         let speed = document.getElementById("change_speed_value").value;
-        let current_sysid = document.getElementById("sysid").value; 
+        let current_sysid = document.getElementById("update_connection_settings_sysid").value; 
         socket.emit('do_change_speed', current_sysid, "airspeed", speed, "-1");
         Materialize.toast("Set target airspeed to " + speed, 3000);
     }, false);
@@ -57,7 +57,7 @@ $(document).ready(function () {
     // Set Altitude
     document.getElementById("change_altitude_button").addEventListener('click', function () {
         let altitude = document.getElementById("change_altitude_value").value;
-        let current_sysid = document.getElementById("sysid").value; 
+        let current_sysid = document.getElementById("update_connection_settings_sysid").value; 
         socket.emit('do_change_altitude', current_sysid, altitude);
         Materialize.toast("Set target altitude to " + altitude, 3000);
     }, false);
