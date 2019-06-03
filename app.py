@@ -335,6 +335,17 @@ def do_change_mode(sysid,mode):
  
     #emit('change_mode', mode)
 
+@cs.socketio.on('set_wp', namespace=cs.settings.Sockets.namespace)
+def set_wp(sysid,wp):
+   # handle correct sysid
+    cs.mavlink_connection.target_system = int(sysid)
+
+    # explicitly define the place we send *back* to as being where this sysid came from ( src ip/port )
+    cs.mavlink_connection.last_address = cs.mavlink_connection.addresslist[int(sysid)]
+
+
+    cs.mavlink_connection.waypoint_set_current_send(int(wp))
+
 
 @cs.socketio.on('template', namespace=cs.settings.Sockets.namespace)
 def template(message):

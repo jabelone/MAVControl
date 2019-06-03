@@ -10,8 +10,9 @@ $(document).ready(function () {
 
     // Do Action
     document.getElementById("set_wp").addEventListener('click', function () {
-        let wp = document.getElementById("wp_select").value;
-        // TODO implement sending mavlink packet for wp
+        let current_sysid = document.getElementById("update_connection_settings_sysid").value; 
+        let wp = document.getElementById("wp_select").value;        
+        socket.emit('set_wp', current_sysid, wp);
         Materialize.toast('Set WP to ' + wp, 2000);
     }, false);
 
