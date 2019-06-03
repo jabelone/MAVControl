@@ -96,7 +96,7 @@ $(document).ready(function () {
     socket.on('mode', function (message) {
         if ( ! states[message.sysid] ) return; // don't accept this type of data till we know basic state this sysid
 
-        states[current_vehicle].cs.mode = message.mode;
+        states[message.sysid].cs.mode = message.mode;
         document.getElementById('status_mode').innerText = states[current_vehicle].cs.mode;
         document.getElementById('floating-mode-text').innerText = states[current_vehicle].cs.mode;
 

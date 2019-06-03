@@ -53,7 +53,6 @@ leafletmap.setView(defaultMapLocation, 18);
 //}).addTo(leafletmap);
 
 // create a red polyline from an array of LatLng points
-flightPath = L.polyline(xx, {color: 'red'}).addTo(leafletmap);
 flightPath = L.polyline([], {color: 'red'}).addTo(leafletmap);
 
 

@@ -45,7 +45,10 @@ def heartbeat(packet):
         cs.states[cs.current_vehicle].last_heartbeat = time.localtime()
         cs.states[cs.current_vehicle].vehicle_type_enum = packet.type
         cs.states[cs.current_vehicle].mode_type_enum = packet.custom_mode
-        cs.states[cs.current_vehicle].mode = utilities.get_mode_string(cs.current_vehicle)
+        newmode = utilities.get_mode_string(cs.current_vehicle)
+        if (newmode != cs.states[cs.current_vehicle].mode ) :
+            print("new mode for vehicle:"+str(cs.current_vehicle)+"->"+str(newmode))
+            cs.states[cs.current_vehicle].mode = newmode
 
         cs.socketio.emit('mode', { "sysid": cs.states[cs.current_vehicle].sysid, 
                                     "mode": cs.states[cs.current_vehicle].mode,

@@ -1,8 +1,7 @@
 socketio = None
-vehicle_type_enum = None
 settings = None
-mode_type_enum = None
 current_vehicle = None
+mavlink_connection = None
 states = {}
 
 class vehicle:
@@ -17,6 +16,8 @@ class vehicle:
     sysid = 0
     gps = None
     attitude=None
+    vehicle_type_enum=None
+    mode_type_enum = None
 
 
 
