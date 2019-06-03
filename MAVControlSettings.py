@@ -22,6 +22,10 @@ class Settings:
         # Frontend
         self.Frontend.name = raw_settings["Frontend"]["name"]
         self.Frontend.password = raw_settings["Frontend"]["password"]
+        try:
+            self.Frontend.allowControl = raw_settings["Frontend"]["allowControl"]
+        except KeyError:
+            self.Frontend.allowControl = "True"
 
         # Backend
         self.Backend.known_mavlink_packets_file = raw_settings["Backend"]["known_mavlink_packets_file"]
@@ -43,6 +47,7 @@ class Settings:
             "Frontend": {
                 "name": self.Frontend.name,
                 "password": self.Frontend.password,
+                "allowControl": self.Frontend.allowControl,
             },
             "Backend": {
                 "known_mavlink_packets_file": self.Backend.known_mavlink_packets_file,

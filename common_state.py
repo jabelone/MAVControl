@@ -3,6 +3,7 @@ settings = None
 current_vehicle = None
 mavlink_connection = None
 states = {}
+last_heartbeat = None
 
 class vehicle:
     last_heartbeat = None

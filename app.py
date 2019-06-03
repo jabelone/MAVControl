@@ -141,9 +141,9 @@ def mavlink_thread():
         cs.mavlink_connection.recv_match()
 
 
+# this sends a 1hz msg to the web browser with the last-seen time of any MAV heartbeat, and it's simply displayed there.
 def heartbeat_thread():
     """Sends a 1Hz heartbeat packet, etc."""
-    # TODO: Sending heartbeat not implemented yet
     while True:
         cs.socketio.sleep(1)
         cs.socketio.emit('heartbeat',
@@ -153,7 +153,9 @@ def heartbeat_thread():
 
 @app.route('/')
 def index():
-    return render_template('index.html', async_mode=cs.socketio.async_mode, page_name=cs.settings.Frontend.name,
+    return render_template('index.html', async_mode=cs.socketio.async_mode, 
+                        page_name=cs.settings.Frontend.name ,
+                        allowControl=cs.settings.Frontend.allowControl,
                            python_version=sys.version)
 
 @app.route('/favicon.ico')
@@ -350,4 +352,5 @@ def template(message):
 
 
 if __name__ == '__main__':
-    cs.socketio.run(app, debug=True)
+    cs.socketio.run(app, debug=True, host='0.0.0.0', port=5000)
+

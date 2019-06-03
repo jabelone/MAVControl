@@ -28,6 +28,10 @@ def switch_current_if_needed(sysid):
 
 
 def heartbeat(packet):
+
+    #
+    cs.last_heartbeat = time.localtime()
+
     if packet.autopilot == mavutil.mavlink.MAV_AUTOPILOT_ARDUPILOTMEGA:
         cs.states[cs.current_vehicle].ap_type = "ArduPilot"
     elif packet.autopilot == mavutil.mavlink.MAV_AUTOPILOT_GENERIC:

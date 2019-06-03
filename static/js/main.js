@@ -357,6 +357,13 @@ $(document).ready(function () {
     });
 
 
+    // three-par popup menu that's only on phones, works on narrow pc screens, but not my galaxy.... todo.
+    document.getElementById("phonemenu").addEventListener("click", function () {
+        $('#modal_conn_settings').modal('open');
+    })
+    
+
+
     // Update the status tab twice per second
     function updateStatusTab() {
 
