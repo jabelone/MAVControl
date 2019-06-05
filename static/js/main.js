@@ -63,8 +63,9 @@ function updateSYSIDDisplay(sysid) {
 } 
 
 $(document).ready(function () {
-    // ====== Page Stuff ======
+    // ====== Page Stuff, using Materialize features like modal and fancy select-drop-downs ======
     $('.modal').modal();
+
     $('select').material_select();
 
     // ====== Handle Socket IO Messages ======
@@ -85,6 +86,21 @@ $(document).ready(function () {
 
     });
 
+    // we get sent a list of waypoints, which we total up, and list in the drop-down "select"
+    socket.on('waypoints', function (message) {
+        var next_id = $("#wp_select");
+        //empty it of prior content
+        $("select").empty().html(' ');
+        // put back "Home" was WP Zero:
+        $(next_id).append($("<option></option>").attr("value", 0).text("Home"));
+        //message.list should be an array
+        $.each(message, function(key, value) {
+            $(next_id).append($("<option></option>").attr("value", value.id).text(value.name));
+        });
+        // re-render the material select box/s on the page.
+        $(next_id).material_select();
+    });
+
     socket.on('do_change_speed', function (speed) {
         //Materialize.toast("Set target speed to " + speed, 3000); // done in actions_tab.js
     });
@@ -103,6 +119,7 @@ $(document).ready(function () {
         states[current_vehicle].cs.vehicle_type = message.vehicle_type;
 
     })
+
 
     socket.on('armed', function (message) {
         if ( ! states[message.sysid] ) return; // don't accept this type of data till we know basic state this sysid
@@ -236,12 +253,13 @@ $(document).ready(function () {
         document.getElementById("footer-heartbeat").innerText = message;
     });
 
+
     // Event handler for new socket io connections.
     socket.on('connect', function () {
         console.log('Connected to backend');
         Materialize.toast('Backend connected', 2000);
 
-        socket.emit('connect', {data: 'I\'m connected to id:'+is});
+        socket.emit('connect', {data: 'I\'m connected'});
     });
 
     // custom reconnect message that includes an initial_sysid from the settings.json
@@ -253,6 +271,8 @@ $(document).ready(function () {
         updateSYSIDDisplay(current_vehicle);
         document.getElementById("update_connection_settings_sysid").value = current_vehicle;
         //socket.emit('reconnect', {data: 'I\'m re-connected to id:'+is});
+
+        
     });
 
 
@@ -358,6 +378,7 @@ $(document).ready(function () {
 
 
     // three-par popup menu that's only on phones, works on narrow pc screens, but not my galaxy.... todo.
+    // see more here: https://materializecss.com/modals.html
     document.getElementById("phonemenu").addEventListener("click", function () {
         $('#modal_conn_settings').modal('open');
     })

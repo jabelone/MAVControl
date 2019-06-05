@@ -12,7 +12,7 @@ def switch_current_if_needed(sysid):
         try: 
             cs.states[cs.current_vehicle].target_system = sysid   
         except KeyError: 
-            print("NEW Vehicle!.."+str(cs.current_vehicle))
+            #print("NEW Vehicle!.."+str(cs.current_vehicle))
             cs.states[cs.current_vehicle] = cs.vehicle()
             cs.states[cs.current_vehicle].location=0
             cs.states[cs.current_vehicle].lat=0
@@ -54,6 +54,12 @@ def heartbeat(packet):
             print("new mode for vehicle:"+str(cs.current_vehicle)+"->"+str(newmode))
             cs.states[cs.current_vehicle].mode = newmode
 
+            #time.sleep(1)
+            #do_change_speed(sysid,speed_type, speed, throttle)
+            #cs.socketio.emit('do_change_speed', { 12,'airspeed', 22, 50} , namespace=cs.settings.Sockets.namespace)
+
+        # yes it's weird that we emit a 'mode' socket message after an incoming 'heartbeat' from the mav, but that's where 
+        # mode is stored in mavlink, so this is actually right
         cs.socketio.emit('mode', { "sysid": cs.states[cs.current_vehicle].sysid, 
                                     "mode": cs.states[cs.current_vehicle].mode,
                                     "type": cs.states[cs.current_vehicle].vehicle_type } ,

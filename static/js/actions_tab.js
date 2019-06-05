@@ -8,7 +8,7 @@ $(document).ready(function () {
         Materialize.toast('Did ' + action, 2000);
     }, false);
 
-    // Do Action
+    // Set Next WayPoint number WP that we will fly to.
     document.getElementById("set_wp").addEventListener('click', function () {
         let current_sysid = document.getElementById("update_connection_settings_sysid").value; 
         let wp = document.getElementById("wp_select").value;        

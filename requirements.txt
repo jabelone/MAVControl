@@ -8,3 +8,5 @@ Werkzeug
 pymavlink
 future
 eventlet
+flask_debugtoolbar
+gevent
