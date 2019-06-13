@@ -1,0 +1,32 @@
+{
+  "author": "buzz",
+  "name": "nodejs_mavcontrol_backend",
+  "description": "using generated js mavlink parser with node",
+  "version": "0.0.1",
+  "homepage": "https://github.com/davidbuzz/MAVControl",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/davidbuzz/MAVControl.git"
+  },
+  "main": "./mavudp_to_ws_server.js",
+  "engines": {
+    "node": ">=8.10.0"
+  },
+  "dependencies": {
+    "backbone": "^1.4.0",
+    "express": "4.X.X",
+    "jspack": "0.0.4",
+    "nconf": "0.10.0",
+    "q": "1.5.1",
+    "socket.io": "2.2.0",
+    "underscore": "1.4.3",
+    "winston": "3.2.1"
+  },
+  "scripts": {
+    "start": "node mavudp_to_ws_server.js"
+  },
+  "bugs": {
+    "url": "https://github.com/davidbuzz/MAVControl/issues"
+  },
+  "license": "ISC"
+}

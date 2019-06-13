@@ -102,3 +102,4 @@ ENV/
 
 venv
 .idea
+node_modules/
