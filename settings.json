@@ -2,7 +2,8 @@
     "MavConnection": {
         "ip": "127.0.0.1",
         "port": "14550",
-        "mavlink_version": "2"
+        "mavlink_version": "2",
+        "initial_sysid": "18"
     },
     "Sockets": {
         "namespace": "/MAVControl",

@@ -13,6 +13,7 @@ class Settings:
         self.MavConnection.ip = raw_settings["MavConnection"]["ip"]
         self.MavConnection.port = raw_settings["MavConnection"]["port"]
         self.MavConnection.mavlink_version = raw_settings["MavConnection"]["mavlink_version"]
+        self.MavConnection.initial_sysid = raw_settings["MavConnection"]["initial_sysid"]
 
         # Sockets
         self.Sockets.namespace = raw_settings["Sockets"]["namespace"]
@@ -21,6 +22,10 @@ class Settings:
         # Frontend
         self.Frontend.name = raw_settings["Frontend"]["name"]
         self.Frontend.password = raw_settings["Frontend"]["password"]
+        try:
+            self.Frontend.allowControl = raw_settings["Frontend"]["allowControl"]
+        except KeyError:
+            self.Frontend.allowControl = "True"
 
         # Backend
         self.Backend.known_mavlink_packets_file = raw_settings["Backend"]["known_mavlink_packets_file"]
@@ -33,6 +38,7 @@ class Settings:
                 "ip": self.MavConnection.ip,
                 "port": self.MavConnection.port,
                 "mavlink_version": self.MavConnection.mavlink_version,
+                "initial_sysid":  self.MavConnection.initial_sysid,
             },
             "Sockets": {
                 "namespace": self.Sockets.namespace,
@@ -41,6 +47,7 @@ class Settings:
             "Frontend": {
                 "name": self.Frontend.name,
                 "password": self.Frontend.password,
+                "allowControl": self.Frontend.allowControl,
             },
             "Backend": {
                 "known_mavlink_packets_file": self.Backend.known_mavlink_packets_file,
@@ -54,6 +61,7 @@ class Settings:
         ip = None
         port = None
         mavlink_version = None
+        initial_sysid = None
 
     class Sockets:
         namespace = None

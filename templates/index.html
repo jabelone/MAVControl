@@ -32,19 +32,23 @@
         </span>
         <ul class="right hide-on-med-and-down">
             <li><a class="white-text modal-trigger" href="#modal_conn_settings">Connection Settings</a></li>
-            <li><a class="white-text modal-trigger" href="#modal_cache_maps">Cache Map</a></li>
+            <li><a class="white-text modal-trigger" href="#modal_cache_maps">Cache Map</a></li>            
+            <li><a class="white-text modal-trigger" href="#modal_cache_sysid">Aircraft ID: <span id="sysid">0</span></a></li>
         </ul>
 
         <ul id="nav-mobile" class="side-nav">
             <li><a class="white-text modal-trigger" href="#modal_conn_settings">Connection Settings</a></li>
         </ul>
-        <a href="#" data-activates="nav-mobile" class="button-collapse"><i class="material-icons">menu</i></a>
+        <a href="#" data-activates="nav-mobile" class="button-collapse"><i class="material-icons" id="phonemenu">menu</i></a>
+
+
+
     </div>
 </nav>
 
 <div id="main-row" class="grey lighten-4 no-padding row center">
 
-    <div id="hud-panel" class="no-padding grey lighten-2 col">
+    <div id="hud-panel" class="no-padding grey lighten-2 col" {% if allowControl == "False" %} style="width:1px;visibility:hidden"{% endif %}>
         <div id="hud-row-upper" class="green lighten-2 row center">
             <div id="hud-panel-contents" class="no-padding col s12 m12 l12">
                 <div id="floating-scale-heading" class="floating-scales">
@@ -287,9 +291,9 @@
         </div>
     </div>
 
-    <div id="map-panel" class="no-padding green darken-1">
+    <div id="map-panel" class="no-padding green darken-1" {% if allowControl == "False" %} style="width:100%"{% endif %}>
         <div id="map-row-upper" class="row center">
-            <div id="map" class="col s12 m12 l12">
+            <div id="map" class="col s12 m12 l12" {% if allowControl == "False" %} style="width:100%"{% endif %}>
                 <!-- Main panel with map-->
                 <!-- The google maps API uses this div, don't put any content in it -->
             </div>
@@ -366,13 +370,15 @@
         </div>
     </div>
 
+
+
     <!-- Connection Settings Modal-->
     <div id="modal_conn_settings" class="modal">
         <div class="modal-content black-text">
             <h4>Connection Settings</h4>
-            <p>Please specify a UDP IP and port to bind to. As soon as data is received we'll connect to the MAV.
-            <div class="chip">
-                <span class="orange-text text-darken-2">The backend will restart to apply changes when you click save!</span>
+            <p{% if allowControl == "False" %} style="visibility:hidden"{% endif %}>Please specify a UDP IP and port to bind to. As soon as data is received we'll connect to the MAV.
+            <div class="chip"{% if allowControl == "False" %} style="visibility:hidden"{% endif %}>
+                <span class="orange-text text-darken-2">The backend will restart to apply changes FOR EVERYONE when you click save!</span>
                 <i class="close material-icons">close</i>
             </div>
 
@@ -380,14 +386,21 @@
                 <form class="col s12">
                     <div class="row">
                         <div class="input-field col s8">
-                            <i class="input-icon material-icons prefix">settings_ethernet</i>
+                            <i class="input-icon material-icons prefix"{% if allowControl == "False" %} style="visibility:hidden"{% endif %}>settings_ethernet</i>
                             <input id="update_connection_settings_ip" type="text" class="validate" required
-                                   pattern="((^|\.)((25[0-5])|(2[0-4]\d)|(1\d\d)|([1-9]?\d))){4}$">
-                            <label for="update_connection_settings_ip">IP Address</label>
+                                   pattern="((^|\.)((25[0-5])|(2[0-4]\d)|(1\d\d)|([1-9]?\d))){4}$"{% if allowControl == "False" %} style="visibility:hidden"{% endif %}>
+                            <label for="update_connection_settings_ip"{% if allowControl == "False" %} style="visibility:hidden"{% endif %}>IP Address</label>
                         </div>
                         <div class="input-field col s4">
-                            <input id="update_connection_settings_port" type="text" class="validate">
-                            <label for="update_connection_settings_port">Port Number</label>
+                            <input id="update_connection_settings_port" type="text" class="validate"{% if allowControl == "False" %} style="visibility:hidden"{% endif %}>
+                            <label for="update_connection_settings_port"{% if allowControl == "False" %} style="visibility:hidden"{% endif %}>Port Number</label>
+                        </div>
+                        &nbsp;
+                        <hr>
+                        &nbsp;
+                        <div class="input-field col s12">
+                            <input id="update_connection_settings_sysid" type="text" class="validate">
+                            <label for="update_connection_settings_sysid">Aircraft SysID ( to make active for your session only, change number and click CLOSE)</label>
                         </div>
                     </div>
                 </form>
@@ -396,9 +409,9 @@
             </p>
         </div>
         <div class="modal-footer">
-            <a href="#!" class="modal-action modal-close waves-effect waves-green btn-flat">Close</a>
-            <a id="update_connection_settings" href="#!" class="waves-effect waves-light btn">
-                <i id="update_connection_settings" class="material-icons right">save</i>Save
+            <a href="#!" class="modal-action modal-close waves-effect waves-green btn-flat" id="close_connection_settings" >Close and Use Locally</a>
+            <a id="update_connection_settings" href="#!" class="waves-effect waves-light btn" {% if allowControl == "False" %} style="visibility:hidden"{% endif %}
+                <i id="update_connection_settings" class="material-icons right">save</i>Save GLobally
             </a>
         </div>
     </div>
