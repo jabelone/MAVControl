@@ -3,7 +3,7 @@
         "ip": "127.0.0.1",
         "port": "14550",
         "mavlink_version": "2",
-        "initial_sysid": "18"
+        "initial_sysid": "11"
     },
     "Sockets": {
         "namespace": "/MAVControl",
@@ -11,7 +11,8 @@
     },
     "Frontend": {
         "name": "MAVControl Pre-Alpha",
-        "password": "secret"
+        "password": "secret",
+        "allowControl": "True"
     },
     "Backend": {
         "known_mavlink_packets_file": "known_packets.json"

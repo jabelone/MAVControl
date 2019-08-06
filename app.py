@@ -1,104 +1,118 @@
 #!/usr/bin/env python3
+
 from threading import Lock
 from flask import Flask, render_template, session, send_from_directory
 from flask_socketio import SocketIO, emit, disconnect
 import sys, os, MAVControlSettings
-from pymavlink import mavutil
+from flask_debugtoolbar import DebugToolbarExtension
+
+# this gets *my* special mavutil with special mavudp as well.
+from mypymavlink import mymavutil as mavutil
+
 import time, utilities
 import common_state as cs
 import handle_packets as handle
+import types
 
 cs.settings = MAVControlSettings.Settings()
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = cs.settings.Frontend.password
-cs.socketio = SocketIO(app, async_mode=cs.settings.Sockets.async_mode)
+
+# flask debug toolbar: https://www.youtube.com/watch?v=ZEHGZnsbXgw
+# https://flask-debugtoolbar.readthedocs.io/en/latest/
+# pip3 install flask_debugtoolbar
+# toolbar needs these:
+#app.debug = True
+#toolbar = DebugToolbarExtension(app)
+#app.config['DEBUG_TB_PROFILER_ENABLED'] = True
+#app.config['DEBUG_TB_TEMPLATE_EDITOR_ENABLED'] = True
+#app.config['DEBUG_TB_PANELS'] = []
+
+# async_mode='threading' is supposed to be ESSENTIAL WHEN WORKING WITH OTHER REAL THREADS, but as it turns out
+# 'gevent' seems to work in this case better as it has proper websockets support and doesn't crash if tested well  :-) 
+cs.socketio = SocketIO(app, async_mode='gevent')
 print(mavutil.mode_mapping_apm[17])
 
-# These threads are needed to keep everything running smoothly. The "mavlink" thread runs recv_match() very quickly in
+# These "real" threads are needed to keep everything running smoothly. The "mavlink" thread runs recv_match() very quickly in
 # order to process new mavlink packets and initiate the callback. The "heartbeat" thread does all the 1 second timed
 # tasks like sending the GCS heartbeat. Both of these must happen regardless of what's going on for stability, so they
-# each need their own thread. This class makes it easier to use them.
+# each need their own thread. 
 
-class mymav(mavutil.mavudp): # inherits from mavudp which inherits from mavfile
-    def __init__(self, device, input=True, broadcast=False, source_system=255, source_component=0, use_native=False):
-        
-        mavutil.mavudp.__init__(self, device, input=True, broadcast=False, source_system=255, source_component=0, use_native=False)
-        self.more = 0
-        self.address_before = None
-        self.addresslist = {} # dict containing keys that are sysids, and values that are source UDP ip/port data for each sysid
+# when sending mavlink messges, any _send ( like self.command_long_send(...) ) calls self.command_long_encode(...) and passes that 
+# result to self.send(...)  which essentially does a mavmsg.pack on the message into a buf, then calls self.file.write(buf) with resultant buf
+# where self.file is not actually a file-based "filehandle" , but the result of a self.port.fileno() call on the original socket.socket ( self.port ) 
 
+import socket, math, struct, time, os, fnmatch, array, sys, errno
+import select
 
-    def recv(self,n=None):
-        data =  super(mymav, self).recv(n)        
-        if (self.last_address != self.address_before):
-            if self.more == 1:
-                print("most recent udp address"+str(self.last_address))
-            self.address_before = self.last_address 
-        return data
-
-    def recv_msg(self):
-        m =  super(mymav, self).recv_msg() # this calls post_message here too , b4 printing and then returning
-        if m and self.more == 1:
-            print("RECV-->"+str(m))
-        # manually override the callback order to call 'cb' last
-        cb(m) 
-        return m
-
-    def write(self, buf):
-        if self.more == 1:
-            print("TO-->"+str(buf))
-        return super(mymav, self).write(buf)
-
-    def post_message(self, msg): 
-        if self.more == 1:
-            print("FROM-->"+str(msg))
-
-        incoming_sysid = msg.get_srcSystem()
-
-        if incoming_sysid not in self.addresslist.keys():
-            print("Found NEW Sysid:" + str(incoming_sysid)) # Useful for debugging purposes
-            print("... from src/port:" + str(self.last_address)) # Useful for debugging purposes
-            self.addresslist.update({incoming_sysid: self.last_address }) 
-
-        return super(mymav, self).post_message(msg)
+import threading
 
 
-class Threads:
-    # Threads
-    mavlink_thread = None
-    heartbeat_thread = None
-
-    # Locks
-    mavlink_lock = Lock()
-    heartbeat_lock = Lock()
 
 
-# Make an instance of our Threads class
-threads = Threads
+# https://godoc.org/github.com/whitedevops/colors
+class bcolors:
+    PURPLE = '\033[95m' #LightMagenta
+    OKBLUE = '\033[94m' #LightBlue
+    OKGREEN = '\033[92m' #light green
+    CYAN    = "\033[96m"
+    DARKCYAN         = "\033[36m"
+    YELLOW = '\033[93m' 
+    RED = '\033[91m'
+    ENDC = '\033[0m' # return to white
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+
+
+print(bcolors.ENDC),
+mainid = threading.get_ident()
+print("MAINTHREADID:"+str(mainid))
+
 
 # Connect to our MAV using our customised class based on "mavutil", with tweaks.
 device = "udp:" + cs.settings.MavConnection.ip + ":" + cs.settings.MavConnection.port
-# make a connection kinda like mavutil would, but with a derived class that supports multiple sourcre ip/port 
-cs.mavlink_connection= mymav(device[4:], input=True, source_system=255, source_component=0, use_native=False)
 print("Attempting connection to: " + device)
+# make a connection kinda like mavutil would, but with a derived class that supports multiple sourcre ip/port 
+cs.mavlink_connection= mavutil.mavudp(device[4:], input=True, source_system=255, source_component=0, use_native=False)
 
 def wait_for_heartbeat(mav_connection):
     """Wait for a heartbeat packet so we know the target sysid"""
     print("Waiting for a heartbeat packet")
     mav_connection.wait_heartbeat(blocking=False)
-    print("Heartbeat from APM (system %u component %u)" % (mav_connection.target_system, mav_connection.target_system))
+    print("Heartbeat from APM (system %u component %u)" % (mav_connection.target_system, mav_connection.target_component))
     cs.last_heartbeat = time.localtime()
 
+print(bcolors.ENDC),
+# before all the threading stuff, be sure we have something valid, sowe don't need to recreate it..? 
+wait_for_heartbeat(cs.mavlink_connection)
+print(bcolors.ENDC),
+# force NO callbacks on startup.
+print("Force NO callbacks on startup")
+cs.mavlink_connection.mav.set_callback(None)
+cs.mavlink_connection.mav.set_pre_send_callback(None)
+cs.mavlink_connection.mav.set_send_callback(None)
+print("-----------------------------")
 
-def cb(packet, b=None, c=None, d=None):
-
+def recv_cb(packet, b=None, c=None, d=None):
+    
     if packet == None:
         return
 
+    #print("cb1")
+    #print(bcolors.OKGREEN),
+    #print("cb1---------------------------------------------------"+str(threading.get_ident()))
+    #print("cb1:  "+str(threading.get_ident()))
+    #print(bcolors.ENDC),
+    #return packet
+
+    #print("cb1")
+
+
     """This callback runs every time we get a new mavlink packet."""
-    # FYI, with set_callback(cb) it's normally called PRIOR to the mymav.post_message function, so can't normally access the ip/port data added there.
-    # but we've re-arranged the order of the arrival-packet callbacks so cb() happends last. ( see mymav() class ) 
+    # FYI, with set_callback(cb) it's normally called PRIOR to the mymavudp.post_message function, so can't normally access the ip/port data added there.
+    # but we've re-arranged the order of the arrival-packet callbacks so cb() happends last. ( see mymavudp() class ) 
     incoming_sysid = packet.get_srcSystem()
 
     handle.switch_current_if_needed(incoming_sysid)
@@ -125,30 +139,162 @@ def cb(packet, b=None, c=None, d=None):
         handle.status_text(packet)
 
 
-wait_for_heartbeat(cs.mavlink_connection)
-#cs.mavlink_connection.mav.set_callback(cb)
+def send_cb(packet, b=None, c=None, d=None):
+    #print("cb2")
+    #print(bcolors.OKBLUE),
+    #print("cb2---------------------------------------------------"+str(threading.get_ident()))
+    #print("cb2:  "+str(threading.get_ident()))
+    #print(bcolors.ENDC),
+    return packet
 
-def cb2(packet, b=None, c=None, d=None):
-    pass
-cs.mavlink_connection.mav.set_send_callback(cb2)
+
+def pre_send_cb(packet, b=None, c=None, d=None):
+    #print("cb3")
+    print(bcolors.YELLOW),
+    #print("cb3---------------------------------------------------"+str(threading.get_ident()))
+
+
+    sysid = packet.target_system
+
+    if sysid == "": 
+        print("no sysid selected, sorry") 
+        return
+
+     # prepare to send to correct sysid
+    cs.mavlink_connection.target_system = int(sysid) 
+
+    # explicitly define the place we send *back* to as being where this sysid came from ( src ip/port ) 
+    cs.mavlink_connection.last_address = cs.mavlink_connection.addresslist[int(sysid)] 
+
+    print("cb3:  preparing to send sysid:"+str(sysid)+" to ip:"+str(cs.mavlink_connection.last_address))
+
+    #print("cb3:  "+str(threading.get_ident()))
+    print(bcolors.ENDC),
+    return packet
+
+def register_callbacks():
+    global cs
+    ret = False
+    #print(bcolors.PURPLE),
+    if cs.mavlink_connection.mav.callback == None:
+        print("registering NEW callback") 
+        ret = True
+        cs.mavlink_connection.mav.set_callback(recv_cb)
+
+    if cs.mavlink_connection.mav.pre_send_callback == None:
+        print("registering NEW pre_send_callback")
+        ret = True
+        cs.mavlink_connection.mav.set_pre_send_callback(pre_send_cb)
+
+    if cs.mavlink_connection.mav.send_callback == None:
+        print("registering NEW send_callback")
+        ret = True
+        cs.mavlink_connection.mav.set_send_callback(send_cb)
+    #print(bcolors.ENDC),
+    return ret
+
+# we need to do this in each thread at least once, this is the main thread where we DONT do it.
+#register_callbacks()
+
+def Xdo_change_mode(sysid,mode):
+
+    mode_mapping = cs.mavlink_connection.mode_mapping()
+    #print("Tavailable modes:"+str(mode_mapping.keys()))
+    mode = mode.upper()
+    modenum = mode_mapping[mode]
+
+    print("Xsetting mode: "+str(mode)+"->"+str(modenum)+" for sysid:"+str(sysid))
+
+    cs.mavlink_connection.set_mode(modenum)
+
+print(bcolors.ENDC),
+print("mainstart, nocallbacks here ,so no cb1,cb2, or cb3 triggered---------------------------------------------------")
+Xdo_change_mode(11,"AUTO")
+print("endmain---------------------------------------------------")
 
 def mavlink_thread():
-
     """Used to process new mavlink messages"""
+    print(bcolors.RED),
+    if mainid == threading.get_ident():
+        print( "subthread error, id matched main thread-mav")
+
+    print("mthread---------------------------------------------------"+str(threading.get_ident()))
+    if register_callbacks(): # call it repeatedly incase they have gone away elsewhere..? 
+        print("registering callbacks in mavlink_threadID:"+str(threading.get_ident()))
+    # we need to do this in each thread at least once, this is the main thread.
+
+    print(bcolors.ENDC),
+
+
+
+
     while True:
         # listen for incoming packets
         cs.socketio.sleep(0.0000000000001)
+        #print(bcolors.RED),
         cs.mavlink_connection.recv_match()
+
+        #print(bcolors.RED),
+
+
+        if register_callbacks(): # call it repeatedly incase they have gone away elsewhere..? 
+            print("registering callbacks AGAIN in mthread")
+        #print(bcolors.ENDC),
+
+        #print(bcolors.RED),
+        #Xdo_change_mode(11,"LOITER")
+        #print(bcolors.ENDC),
+        #cs.socketio.sleep(5)
+
+Zmavlink_thread  = threading.Thread(target=mavlink_thread)
+Zmavlink_thread.start()
+
+time.sleep(1) # so the thread we started can do registration and etc what its done before we move on.
+print("main:---------------------------------------------------"+str(threading.get_ident()))
+Zheartbeat_thread = None
+
+# Locks
+Zmavlink_lock = Lock()
+Zheartbeat_lock = Lock()
+
+#Xdo_change_mode(11,"AUTO")
 
 
 # this sends a 1hz msg to the web browser with the last-seen time of any MAV heartbeat, and it's simply displayed there.
+# this thread should NOT send outbound messages to the mavlink socket without  calling register_callbacks() first
 def heartbeat_thread():
     """Sends a 1Hz heartbeat packet, etc."""
+
+    print(bcolors.CYAN),
+    if mainid == threading.get_ident():
+        print( "subthread error, id matched main thread-heart")
+
+    print("hthread---------------------------------------------------"+str(threading.get_ident()))
+
+    #if register_callbacks(): # call it repeatedly incase they have gone away elsewhere..? 
+    #    print("registering callbacks in heartbeat_threadID:"+str(threading.get_ident()))
+    ## we need to do this in each thread at least once for mavlink coms in that thread.
+   
+    print(bcolors.ENDC),
     while True:
+        #print(bcolors.ENDC),
         cs.socketio.sleep(1)
+        #print(bcolors.CYAN),
         cs.socketio.emit('heartbeat',
                          str(time.strftime('%H:%M:%S', cs.last_heartbeat)),
                          namespace=cs.settings.Sockets.namespace)
+
+        #if register_callbacks(): # call it repeatedly incase they have gone away elsewhere..? 
+        #    print("registering callbacks AGAIN in hthread")
+
+        # this simple test sends a mavlink packet from this thread, not recommended atm.
+        #print(bcolors.CYAN),
+        #Xdo_change_mode(11,"RTL")
+
+
+Zheartbeat_thread  = threading.Thread(target=heartbeat_thread)
+Zheartbeat_thread.start()
+
 
 
 @app.route('/')
@@ -163,11 +309,12 @@ def favicon():
     return send_from_directory(os.path.join(app.root_path, 'static'),
                                'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
-@app.route('/pitch')
-def pitch_url():
-    cs.socketio.emit('attitude', {'pitch': 10, 'roll': cs.states[current_vehicle].attitude.roll, 'yaw': cs.states[current_vehicle].attitude.yaw},
-                     namespace=cs.settings.Sockets.namespace)
-    return "ok done"
+#@app.route('/pitch')
+#def pitch_url():
+#    
+#    cs.socketio.emit('attitude', {'pitch': 10, 'roll': cs.states[cs.current_vehicle].attitude.roll, 'yaw': cs.states[cs.current_vehicle].attitude.yaw},
+#                     namespace=cs.settings.Sockets.namespace)
+#    return "ok done"
 
 
 @cs.socketio.on('update_connection_settings', namespace=cs.settings.Sockets.namespace)
@@ -181,31 +328,48 @@ def update_connection_settings(ip, port, initial_sysid):
     os.execv(__file__, sys.argv)
 
 
-@cs.socketio.on('my_event', namespace=cs.settings.Sockets.namespace)
-def test_message(message):
-    session['receive_count'] = session.get('receive_count', 0) + 1
-    emit('my_response',
-         {'data': message['data'], 'count': session['receive_count']})
+#@cs.socketio.on('my_event', namespace=cs.settings.Sockets.namespace)
+#def test_message(message):
+#    session['receive_count'] = session.get('receive_count', 0) + 1
+#    emit('my_response',
+#         {'data': message['data'], 'count': session['receive_count']})
 
 
+# server-client latency checker initiated by browser/client and responded to here.
 @cs.socketio.on('my_ping', namespace=cs.settings.Sockets.namespace)
 def ping_pong():
     emit('my_pong')
 
+
 # connect only seems to be used on FIRST socket connect....
 @cs.socketio.on('connect', namespace=cs.settings.Sockets.namespace)
 def test_connect():
-    global threads
+    global Zmavlink_thread
+    global Zheartbeat_thread
+    global Zmavlink_lock
+    global Zheartbeat_lock
 
-    with threads.mavlink_lock:
-        if threads.mavlink_thread is None:
-            threads.mavlink_thread = cs.socketio.start_background_task(target=mavlink_thread)
-    with threads.heartbeat_lock:
-        if threads.heartbeat_thread is None:
-            threads.heartbeat_thread = cs.socketio.start_background_task(target=heartbeat_thread)
+    print("Connect")
+    
+
+    #with Zmavlink_lock:
+        #if Zmavlink_thread is None:
+        #    Zmavlink_thread = cs.socketio.start_background_task(target=mavlink_thread)
+        #print("STARTING mavlink_thread FRON SOCKETIO")
+        #Zmavlink_thread  = threading.Thread(target=mavlink_thread)
+        #Zmavlink_thread.start()
+
+    #with Zheartbeat_lock:
+        #if Zheartbeat_thread is None:
+        #    Zheartbeat_thread = cs.socketio.start_background_task(target=heartbeat_thread)
+        #print("STARTING heartbeat_thread FRON SOCKETIO")
+        #Zheartbeat_thread  = threading.Thread(target=heartbeat_thread)
+        #Zheartbeat_thread.start()
 
     emit('reconnect', {'data': 'Connected', 'count': 0, 'initial_sysid': cs.settings.MavConnection.initial_sysid})
 
+    # since it's a reconnect, we can also emit other relevant state-updating info here too, such as WP data:
+    #get_wp_list(cs.settings.MavConnection.initial_sysid)
 
 @cs.socketio.on('disconnect', namespace=cs.settings.Sockets.namespace)
 def disconnect():
@@ -219,11 +383,8 @@ def disconnect():
 @cs.socketio.on('arm', namespace=cs.settings.Sockets.namespace)
 def arm_vehicle(sysid):
 
-   # handle correct sysid
+     # prepare to send to correct sysid
     cs.mavlink_connection.target_system = int(sysid)
-
-    # explicitly define the place we send *back* to as being where this sysid came from ( src ip/port )
-    cs.mavlink_connection.last_address = cs.mavlink_connection.addresslist[int(sysid)]
 
     p2 = 0 # we don't support forced arming.
     cs.mavlink_connection.mav.command_long_send(
@@ -243,11 +404,8 @@ def arm_vehicle(sysid):
 @cs.socketio.on('disarm', namespace=cs.settings.Sockets.namespace)
 def disarm_vehicle(sysid):
 
-   # handle correct sysid
+     # prepare to send to correct sysid
     cs.mavlink_connection.target_system = int(sysid)
-
-    # explicitly define the place we send *back* to as being where this sysid came from ( src ip/port )
-    cs.mavlink_connection.last_address = cs.mavlink_connection.addresslist[int(sysid)]
 
     cs.mavlink_connection.mav.command_long_send(
         int(sysid),  # target_system
@@ -266,15 +424,21 @@ def do_change_speed(sysid,speed_type, speed, throttle):
         speed_type = 1
 
     if speed == "" :
-         return  # cant change speed without a speed.
+        print("no speed selected, sorry")
+        return  # cant change speed without a speed.
 
+    if sysid == "":
+        print("no sysid selected, sorry")
+        return
 
-    # handle correct sysid
+    print("command_long_sendy")
+    print(cs.mavlink_connection.mav.send)
+
+    print('cs.mavlink_connection.mav.pre_send_callback')
+    print(cs.mavlink_connection.mav.pre_send_callback)
+
+     # prepare to send to correct sysid
     cs.mavlink_connection.target_system = int(sysid)
-
-    # explicitly define the place we send *back* to as being where this sysid came from ( src ip/port )
-    cs.mavlink_connection.last_address = cs.mavlink_connection.addresslist[int(sysid)]
-
 
     # this change-speed command does NOT appear to work in LOITER, but does in AUTO & RTL
     cs.mavlink_connection.mav.command_long_send(
@@ -295,12 +459,8 @@ def do_change_altitude(sysid,alt):
     if alt == "":
         return  # cant change alt without a value.
 
-   # handle correct sysid
+     # prepare to send to correct sysid
     cs.mavlink_connection.target_system = int(sysid)
-
-    # explicitly define the place we send *back* to as being where this sysid came from ( src ip/port )
-    cs.mavlink_connection.last_address = cs.mavlink_connection.addresslist[int(sysid)]
-
 
     cs.mavlink_connection.mav.command_long_send(
         int(sysid),  # target_system = the one we are looking at.
@@ -322,14 +482,12 @@ def do_change_mode(sysid,mode):
     mode = mode.upper()
     modenum = mode_mapping[mode]
 
-    # handle correct sysid
-    cs.mavlink_connection.target_system = int(sysid)
-
-    # explicitly define the place we send *back* to as being where this sysid came from ( src ip/port )
-    cs.mavlink_connection.last_address = cs.mavlink_connection.addresslist[int(sysid)]
-
     print("Tsetting mode: "+str(mode)+"->"+str(modenum)+" for sysid:"+str(sysid))
 
+     # prepare to send to correct sysid
+    cs.mavlink_connection.target_system = int(sysid) 
+
+    # actually send
     cs.mavlink_connection.set_mode(modenum)
 
  
@@ -337,31 +495,48 @@ def do_change_mode(sysid,mode):
 
 @cs.socketio.on('set_wp', namespace=cs.settings.Sockets.namespace)
 def set_wp(sysid,wp):
-   # handle correct sysid
+
+     # prepare to send to correct sysid
     cs.mavlink_connection.target_system = int(sysid)
 
-    # explicitly define the place we send *back* to as being where this sysid came from ( src ip/port )
-    cs.mavlink_connection.last_address = cs.mavlink_connection.addresslist[int(sysid)]
-
-
+    # tell teh aircraft to go to that WP
     cs.mavlink_connection.waypoint_set_current_send(int(wp))
 
+@cs.socketio.on('get_wp_list', namespace=cs.settings.Sockets.namespace)
+def get_wp_list(sysid):
+    # bonus side-effect:   send a list of waypoints to the GUI
+    # leave out WP "0", or Home.
+    #list = [1,2,3,4,5,6,7,8,9,10]
+    list = [{'id':1,'name':1},{'id':2,'name':2},{'id':3,'name':3},{'id':4,'name':4},
+            {'id':5,'name':5},{'id':6,'name':6},{'id':7,'name':7},{'id':8,'name':8},{'id':9,'name':9},{'id':10,'name':10}]
+    
+    emit('waypoints', list) 
+    print("sending waypoints list to browser")
 
-@cs.socketio.on('template', namespace=cs.settings.Sockets.namespace)
-def template(message):
-    cs.mavlink_connection.mav.command_long_send(
-        cs.target_system,  # target_system
-        0,
-        mavutil.mavlink.MAV_CMD_DO_SET_MODE,  # command
-        0,  # confirmation
-        0,  # param 1
-        0,  #
-        0,  #
-        0,  #
-        0, 0, 0)
-    emit('template', message)
+
+#@cs.socketio.on('template', namespace=cs.settings.Sockets.namespace)
+#def template(message):
+#    cs.mavlink_connection.mav.command_long_send(
+#        cs.target_system,  # target_system
+#        0,
+#        mavutil.mavlink.MAV_CMD_DO_SET_MODE,  # command
+#        0,  # confirmation
+#        0,  # param 1
+#        0,  #
+#        0,  #
+#        0,  #
+#        0, 0, 0)
+#    emit('template', message)
+
+# regarding Debug=True https://www.youtube.com/watch?v=xHyvIkkZ7uc
 
 
 if __name__ == '__main__':
-    cs.socketio.run(app, debug=True, host='0.0.0.0', port=5000)
+# next two lines needed while in debug mode because of this: https://github.com/miguelgrinberg/Flask-SocketIO/issues/65
+
+
+    cs.socketio.run(app,  host='0.0.0.0', port=5000, use_reloader=False)
+#    while True:
+#        pass
+
 
