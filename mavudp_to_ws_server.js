@@ -237,11 +237,8 @@ mavlinkParser.on('HEARTBEAT', function(message) {
 	//console.log(message); // message is a HEARTBEAT message
 
 
-    if (  (sysid_to_ip_address[message.header.srcSystem] != null ) && ( sysid_to_ip_address[message.header.srcSystem].address == udpserver.last_ip_address.address) && 
-        ( sysid_to_ip_address[message.header.srcSystem].port == udpserver.last_ip_address.port )  )  { 
-
-    } else { 
-      console.log(`Got first heartbeat message from ${udpserver.last_ip_address.address}:${udpserver.last_ip_address.port}, not repeating this. `);
+    if (  sysid_to_ip_address[message.header.srcSystem] == null )  {
+          console.log(`Got first heartbeat message from ${udpserver.last_ip_address.address}:${udpserver.last_ip_address.port}, not repeating this. `);
     } 
 
     //    keep a record of the sysid <-> ip address and port info on-hand for when we want to *send*.
