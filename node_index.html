@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0"/>
+    <title>MAVControl</title>
+    <script type="text/javascript" src="/static/js/jquery-3.2.1.min.js"></script>
+    <!-- old/static socket.io :
+        <script type="text/javascript" src="/static/js/socket.io.min.js"></script> -->
+    <!-- newer embedded 2.2.0 client delivered by 2.2 socket.io node server: -->
+    <script type="text/javascript" src="/socket.io/socket.io.js"></script>
+    <script type="text/javascript" src="/static/js/main.js" charset="utf-8"></script>
+    <script type="text/javascript" src="/static/js/actions_tab.js" charset="utf-8"></script>
+    <script type="text/javascript" src="/static/js/servo_tab.js" charset="utf-8"></script>
+
+    <!-- CSS  -->
+    <link href="/static/css/materialize.css" type="text/css" rel="stylesheet" media="screen,projection"/>
+    <link href="/static/css/style.css" type="text/css" rel="stylesheet" media="screen,projection"/>
+
+    <!-- Leaflet (map) stuff -->
+    <link rel="stylesheet" href="/static/css/leaflet.css"/>
+    <script src="/static/js/leaflet.js"></script>
+    <script type="text/javascript" src="/static/js/leaflet.rotatedMarker.js"></script>
+    <!-- ^ Found here: https://github.com/bbecquet/Leaflet.RotatedMarker -->
+    <script type="text/javascript" src="/static/js/localforage.min.js"></script>
+    <script type="text/javascript" src="/static/js/leaflet-offline.js"></script>
+    <!-- Found here: https://github.com/robertomlsoares/leaflet-offline -->
+</head>
+<body>
+
+<nav class="navigation blue darken-2" role="navigation">
+    <div class="nav-wrapper container">
+        <span id="logo-container" class="brand-logo">
+            MAVControl
+        </span>
+        <ul class="right hide-on-med-and-down">
+            <li><a class="white-text modal-trigger" href="#modal_conn_settings">Connection Settings</a></li>
+            <li><a class="white-text modal-trigger" href="#modal_cache_maps">Cache Map</a></li>            
+            <li><a class="white-text modal-trigger" href="#modal_cache_sysid">Aircraft ID: <span id="sysid">0</span></a></li>
+        </ul>
+
+        <ul id="nav-mobile" class="side-nav">
+            <li><a class="white-text modal-trigger" href="#modal_conn_settings">Connection Settings</a></li>
+        </ul>
+        <a href="#" data-activates="nav-mobile" class="button-collapse"><i class="material-icons" id="phonemenu">menu</i></a>
+        <!-- todo see https://materializecss.com/navbar.html for mobile nav menu -->
+
+
+    </div>
+</nav>
+
+<div id="main-row" class="grey lighten-4 no-padding row center">
+
+    <div id="hud-panel" class="no-padding grey lighten-2 col" >
+        <div id="hud-row-upper" class="green lighten-2 row center">
+            <div id="hud-panel-contents" class="no-padding col s12 m12 l12">
+                <div id="floating-scale-heading" class="floating-scales">
+                    <div id="floating-scale-pointer-heading" class="floating-scale-pointer">0 m/s</div>
+                </div>
+                <div id="floating-scale-speed" class="floating-scales">
+                    <div id="floating-scale-pointer-speed" class="floating-scale-pointer">0 m/s</div>
+                </div>
+                <div id="floating-scale-altitude" class="floating-scales">
+                    <div id="floating-scale-pointer-altitude" class="floating-scale-pointer">0 m</div>
+                </div>
+                <div id="floating-mode" class="floating">
+                    <div id="floating-mode-text" class="floating">Unknown</div>
+                </div>
+                <div id="floating-armed" class="floating">
+                    <div id="floating-armed-text" style="display: none;" class="">ARMED</div>
+                    <div id="floating-disarmed-text" style="display: none;" class="">DISARMED</div>
+                </div>
+                <!-- HUD panel with artificial horizon etc -->
+                <img id="stationary-hud-markings" src="/static/img/HUD_stationary.svg"/>
+                <div id="moving-hud-panel" class="no-padding">
+                    <img id="moving-hud-bg" src="/static/img/artificial_horizon.svg"/>
+                </div>
+            </div>
+        </div>
+        <div id="hud-row-lower" class="grey lighten-4 no-padding row center">
+            <div id="control-panel-contents" class="no-padding col s12 m12 l12">
+                <!-- HUD panel with controls/mode buttons etc -->
+                <div class="card-tabs">
+                    <ul class="tabs tabs-fixed-width">
+                        <li class="tab"><a class="active" href="#actions_tab">Actions</a></li>
+                        <li class="tab"><a href="#gauges_tab">Gauges</a></li>
+                        <li class="tab"><a href="#servo_tab">Servo</a></li>
+                        <li class="tab"><a href="#messages_tab">Messages</a></li>
+                        <li class="tab"><a href="#status_tab">Status</a></li>
+                    </ul>
+                </div>
+                <div class="card-content grey lighten-4">
+                    <div id="actions_tab">
+                        <div id="actions_row_1" class="row">
+                            <div class="input-field col s12 m4 l4">
+                                <select id="actions_select">
+                                    <optgroup label="In Flight">
+                                        <option value="Trigger Camera">Trigger Camera</option>
+                                        <optgroup label="Pre Flight">
+                                            <option value="Pre-Flight Calibration">Pre-Flight Calibration</option>
+                                            <option disabled value="Pre-Flight Reboot">Pre-Flight Reboot</option>
+                                        </optgroup>
+                                </select>
+                                <!--<a class="waves-effect waves-light btn">button</a>-->
+                            </div>
+                            <div class="col s12 m4 l2">
+                                <a id="do_action" class="waves-effect blue waves-light btn">Do Action</a>
+                            </div>
+                            <div class="col s12 m4 l2">
+                                <div class="input-field">
+                                    <input placeholder="20 m/s" id="change_speed_value" type="text" class="validate">
+                                </div>
+                            </div>
+                            <div class="col s12 m4 l4">
+                                <a id="change_speed_button" class="waves-effect blue waves-light btn">Change Speed</a>
+                            </div>
+
+                        </div>
+                        <div id="actions_row_2" class="row">
+                            <div class="input-field col s12 m4 l4">
+                                <select id="wp_select">
+                                    <!--<optgroup label="Target Waypoint"> 
+                                        <option value="1">1</option> -->
+                                        <option value="0">Home</option> 
+                                </select>
+                                <!--<a class="waves-effect waves-light btn">button</a>-->
+                            </div>
+                            <div class="col s12 m4 l2">
+                                <a id="set_wp" class="waves-effect blue waves-light btn">Set WP</a>
+                            </div>
+                            <div class="col s12 m4 l2">
+                                <div class="input-field">
+                                    <input placeholder="50 m" id="change_altitude_value" type="text" class="validate">
+                                </div>
+                            </div>
+                            <div class="col s12 m4 l4">
+                                <a id="change_altitude_button" class="waves-effect blue waves-light btn">Change Alt</a>
+                            </div>
+
+                        </div>
+                        <div id="actions_row_3" class="row">
+                            <div class="input-field col s12 m4 l4">
+                                <select id="mode_select">
+                                    <optgroup label="Autonomous">
+                                        <option value="Auto">Auto</option>
+                                        <option value="RTL">RTL</option>
+                                        <option value="Loiter">Loiter</option>
+                                        <optgroup label="Manual">
+                                            <option value="FBWA">FBWA</option>
+                                            <option value="Manual">Manual</option>
+                                </select>
+                                <!--<a class="waves-effect waves-light btn">button</a>-->
+                            </div>
+                            <div class="col s12 m4 l2">
+                                <a id="set_mode" class="waves-effect blue waves-light btn">Set Mode</a>
+                            </div>
+                            <div class="col s12 m4 l2">
+                                <div class="input-field">
+                                    <input placeholder="50 m" id="loiter_radius_value" type="number" class="validate">
+                                </div>
+                            </div>
+                            <div class="col s12 m4 l4">
+                                <a id="loiter_radius_button" class="waves-effect blue waves-light btn">Set Loiter
+                                    Radius</a>
+                            </div>
+
+                        </div>
+                        <div id="actions_row_4" class="row">
+                            <div class="col s12 m4 l2">
+                                <a id="auto_button" class="waves-effect blue waves-light btn">Auto</a>
+                            </div>
+                            <div class="col s12 m4 l2">
+                                <a id="rtl_button" class="waves-effect blue waves-light btn">RTL</a>
+                            </div>
+                            <div class="col s12 m4 l2">
+                                <a id="loiter_button" class="waves-effect blue waves-light btn">Loiter</a>
+                            </div>
+                            <div class="col s12 m4 l2">
+                                <!--<a class="waves-effect blue waves-light btn"></a>-->
+                            </div>
+                            <div class="col s12 m4 l2">
+                                <a id="arm_button" class="waves-effect orange waves-light btn">ARM</a>
+                            </div>
+                            <div class="col s12 m4 l2">
+                                <a id="disarm_button" class="waves-effect orange waves-light btn">DISARM</a>
+                            </div>
+
+                        </div>
+                    </div>
+                    <div id="gauges_tab" class="hud_tabs">
+                        <span>Sorry, not implemented yet.</span>
+                    </div>
+                    <div id="servo_tab" class="hud_tabs">
+                        <div id="servo_status_row" class="row">
+                            <div class="col servo_num l1"></div>
+                            <div class="col servo_num l1"><span data-servo_number="5">5</span></div>
+                            <div class="col servo_num l1"><span data-servo_number="6">6</span></div>
+                            <div class="col servo_num l1"><span data-servo_number="7">7</span></div>
+                            <div class="col servo_num l1"><span data-servo_number="8">8</span></div>
+                            <div class="col servo_num l1"><span data-servo_number="9">9</span></div>
+                            <div class="col servo_num l1"><span data-servo_number="10">10</span></div>
+                            <div class="col servo_num l1"><span data-servo_number="11">11</span></div>
+                            <div class="col servo_num l1"><span data-servo_number="12">12</span></div>
+                            <div class="col servo_num l1"><span data-servo_number="13">13</span></div>
+                            <div class="col servo_num l1"><span data-servo_number="14">14</span></div>
+                        </div>
+                        <div class="row">
+                            <div class="col servo_btn l1"></div>
+                            <div class="col servo_btn l1"><a data-servo_number="5"
+                                                             class="servo_toggle waves-effect blue waves-light btn">?</a>
+                            </div>
+                            <div class="col servo_btn l1"><a data-servo_number="6"
+                                                             class="servo_toggle waves-effect blue waves-light btn">?</a>
+                            </div>
+                            <div class="col servo_btn l1"><a data-servo_number="7"
+                                                             class="servo_toggle waves-effect blue waves-light btn">?</a>
+                            </div>
+                            <div class="col servo_btn l1"><a data-servo_number="8"
+                                                             class="servo_toggle waves-effect blue waves-light btn">?</a>
+                            </div>
+                            <div class="col servo_btn l1"><a data-servo_number="9"
+                                                             class="servo_toggle waves-effect blue waves-light btn">?</a>
+                            </div>
+                            <div class="col servo_btn l1"><a data-servo_number="10"
+                                                             class="servo_toggle waves-effect blue waves-light btn">?</a>
+                            </div>
+                            <div class="col servo_btn l1"><a data-servo_number="11"
+                                                             class="servo_toggle waves-effect blue waves-light btn">?</a>
+                            </div>
+                            <div class="col servo_btn l1"><a data-servo_number="12"
+                                                             class="servo_toggle waves-effect blue waves-light btn">?</a>
+                            </div>
+                            <div class="col servo_btn l1"><a data-servo_number="13"
+                                                             class="servo_toggle waves-effect blue waves-light btn">?</a>
+                            </div>
+                            <div class="col servo_btn l1"><a data-servo_number="14"
+                                                             class="servo_toggle waves-effect blue waves-light btn">?</a>
+                            </div>
+                        </div>
+
+                        <!-- This is created dynamically with javascript (main.js) to avoid hundreds of lines of code :) -->
+                    </div>
+                    <div id="messages_tab">
+                        <div class="row">
+                            <div class="col l2"></div>
+                            <div class="col l4">
+                                Auto Scroll: &nbsp;&nbsp;&nbsp;
+                                <div id="auto_scroll" class="switch">
+                                    <label>
+                                        Off
+                                        <input name="auto_scroll_toggle" type="checkbox" checked="checked">
+                                        <span class="lever"></span>
+                                        On
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col l4">
+                                <a id="clear_message_btn" class="waves-effect blue waves-light btn">Clear Messages</a>
+                            </div>
+                            <div class="col l2"></div>
+                        </div>
+                        <p id="messages" class="left-align scroll"></p>
+                    </div>
+                    <div id="status_tab" class="hud_tabs">
+                        <div class="row">
+                            <div class="col s12 m6 l6"><span>Airspeed: </span><span id="status_airspeed"></span> m/s
+                            </div>
+                            <div class="col s12 m6 l6"><span>Altitude: </span><span id="status_altitude"></span> m</div>
+                        </div>
+                        <div class="row">
+                            <div class="col s12 m6 l6"><span>Latitude: </span><span id="status_latitude"></span></div>
+                            <div class="col s12 m6 l6"><span>Longitude: </span><span id="status_longitude"></span></div>
+                        </div>
+                        <div class="row">
+                            <div class="col s12 m6 l6"><span>Heading: </span><span id="status_heading"></span> degrees
+                            </div>
+                            <div class="col s12 m6 l6"><span>Mode: </span><span id="status_mode"></span></div>
+                        </div>
+                        <div class="row">
+                            <div class="col s12 m6 l6"><span>Roll: </span><span id="status_roll"></span> degrees</div>
+                            <div class="col s12 m6 l6"><span>AP Type: </span><span id="status_ap_type"></span></div>
+                        </div>
+                        <div class="row">
+                            <div class="col s12 m6 l6"><span>Pitch: </span><span id="status_pitch"></span> degrees</div>
+                            <div class="col s12 m6 l6"><span></span><span id="status_"></span></div>
+                        </div>
+                        <div class="row">
+                            <div class="col s12 m6 l6"><span>Yaw: </span><span id="status_yaw"></span> degrees</div>
+                            <div class="col s12 m6 l6"><span></span><span id="status_"></span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="map-panel" class="no-padding green darken-1">
+        <div id="map-row-upper" class="row center">
+            <div id="map" class="col s12 m12 l12">
+                <!-- Main panel with map-->
+                <!-- The google maps API uses this div, don't put any content in it -->
+            </div>
+        </div>
+        <div id="map-row-lower" class="row center">
+            <div id="map-bottom-contents" class="col s12 m12 l12">
+                <!-- Bottom panel with GPS info etc -->
+                <!-- not used currently -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer class="page-footer blue darken-2">
+    <div class="container">
+        <div class="row">
+            <div class="col l3 m6 s12">
+                Made by <a id="copyright" class="white-text" target="_blank" href="https://jaimyn.com.au">Jaimyn
+                Mayer</a>
+            </div>
+            <div class="col l2 m4 s12">
+                <a class="white-text modal-trigger" href="#modal1">About</a>
+            </div>
+            <div class="col l3 m7 s12">
+                Backend Latency: <b><span id="footer-ping-pong"></span>ms</b>
+            </div>
+            <div class="col l4 m7 s12">
+                Last Vehicle Heartbeat: <b><span id="footer-heartbeat">DISCONNECTED</span></b>
+            </div>
+        </div>
+    </div>
+
+    <!-- About Modal-->
+    <div id="modal1" class="modal">
+        <div class="modal-content black-text">
+            <h4>About MAVControl</h4>
+            <p>MAVControl is <strong>preAlpha</strong>. Notice the preAlpha bit? That means it's still just random
+                characters mashed together in the hope that it does something. It's a WIP, bug reports will be ignored
+                and it most definitely should not be used with anything in the air. (or on the ground, or in water for
+                that matter)
+                <br><br>
+                I'm a university student at QUT in Brisbane, Australia and I'm coding this in my free time over the
+                summer break. See this project on GitHub by
+                <a target="_blank" href="https://github.com/jabelone/MAVControl">clicking here</a>!
+                <br><br>
+            <h4>Project Goals:</h4>
+            This project is meant to compliment Mission Planner. Mission Planner is fantastic and this will never
+            replace it. However, when running an operation Mission Planner isn't really reliable enough. It crashes
+            slightly too often to be considered reliable and isn't very portable between operating systems. The goal of
+            this is to replace the "Flight Data" screen in Mission Planner with something super reliable, fast and
+            clean.
+
+            <br><br>
+            <h4>Developer Info:</h4>
+            Python version: <b>{{ python_version }}</b><br>
+            Async mode is: <b>{{ async_mode }}</b><br>
+            Backend Latency: <b><span id="about-ping-pong"></span>ms</b>
+            </p>
+        </div>
+        <div class="modal-footer">
+            <a href="#!" class="modal-action modal-close waves-effect waves-green btn-flat">Close</a>
+        </div>
+    </div>
+
+    <!-- About Vehicle Modal-->
+    <div id="modal_vehicle" class="modal">
+        <div class="modal-content black-text">
+            <h4>Connected vehicle info:</h4>
+            Auto Pilot Type: <span id="vehicle-info-type"></span>
+            </p>
+        </div>
+        <div class="modal-footer">
+            <a href="#!" class="modal-action modal-close waves-effect waves-green btn-flat">Close</a>
+        </div>
+    </div>
+
+
+
+    <!-- Connection Settings Modal-->
+    <div id="modal_conn_settings" class="modal">
+        <div class="modal-content black-text">
+            <h4>Connection Settings</h4>
+            <p>Please specify a UDP IP and port to bind to. As soon as data is received we'll connect to the MAV.
+            <div class="chip">
+                <span class="orange-text text-darken-2">The backend will restart to apply changes FOR EVERYONE when you click save!</span>
+                <i class="close material-icons">close</i>
+            </div>
+
+            <div class="row">
+                <form class="col s12">
+                    <div class="row">
+                        <div class="input-field col s8">
+                            <i class="input-icon material-icons prefix">settings_ethernet</i>
+                            <input id="update_connection_settings_ip" type="text" class="validate" required
+                                   pattern="((^|\.)((25[0-5])|(2[0-4]\d)|(1\d\d)|([1-9]?\d))){4}$">
+                            <label for="update_connection_settings_ip">IP Address</label>
+                        </div>
+                        <div class="input-field col s4">
+                            <input id="update_connection_settings_port" type="text" class="validate">
+                            <label for="update_connection_settings_port">Port Number</label>
+                        </div>
+                        &nbsp;
+                        <hr>
+                        &nbsp;
+                        <div class="input-field col s12">
+                            <input id="update_connection_settings_sysid" type="text" class="validate">
+                            <label for="update_connection_settings_sysid">Aircraft SysID ( to make active for your session only, change number and click CLOSE)</label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            </p>
+        </div>
+        <div class="modal-footer">
+            <a href="#!" class="modal-action modal-close waves-effect waves-green btn-flat" id="close_connection_settings" >Close and Use Locally</a>
+            <a id="update_connection_settings" href="#!" class="waves-effect waves-light btn" 
+                <i id="update_connection_settings" class="material-icons right">save</i>Save GLobally
+            </a>
+        </div>
+    </div>
+
+    <!-- Map Cache Modal-->
+    <div id="modal_cache_maps" class="modal">
+        <div class="modal-content black-text">
+            <h4>Cache maps for offline use</h4>
+            <p>Here you can check the progress of an existing download, the storage being used or delete all cached maps.</p>
+            <p>Progress: <span id="progress"></span> / <span id="total"></span></p>
+            <p>Current storage: <span id="storage"></span> files</p>
+            <button class="btn red" id="remove_tiles">
+                <i class="material-icons">delete_forever</i>
+            </button>
+            <br><br>
+            <p>To pre-cache tiles, click on the download icon inside the map.</p>
+        </div>
+        <div class="modal-footer">
+            <a href="#!" class="modal-action modal-close waves-effect waves-green btn-flat">Close</a>
+        </div>
+    </div>
+
+    <!-- Scripts-->
+    <script src="/static/js/materialize.js"></script>
+    <script type="text/javascript" src="/static/js/leaflet-stuff.js"></script>
+
+</footer>
+</body>
+</html>

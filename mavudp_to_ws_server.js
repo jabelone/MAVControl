@@ -3,7 +3,7 @@
 // incoming UDP mavlink/vehicl/sim data at 0.0.0.0:14550 is parsed to generate messages that are passed off to the MAVControl instance for
 // display of the HUD and MAP etc. 
 // uses express 4 + socket.io and 'backbone.js' as a server-side Model for the Vehicle state and a group of Vehicles, and as few other dependancies as possible. 
-//  delivers most static content from public/static and socketio stuff from /socket.io and public/index.html is the main page.
+//  delivers most static content from /static and socketio stuff from /socket.io and /node_index.html is the main page.
 
 //-------------------------------------------------------------
 //
@@ -48,16 +48,18 @@ webserver.listen(3000+offset, function(){
   console.log("Express webserver listening on port 3000.  goto: http://127.0.0.1:3000");
 });
 
-// webserver anything under /static from /public/static
-app.use('/static', express.static('public/static'))
+// webserver anything under /static from /static
+app.use('/static', express.static('static'))
 
 //this is a good thing, generally.
 app.get('/favicon.ico', function (req, res) {
-    res.sendFile(__dirname + '/public/static/favicon.ico',{headers: {'Content-Type': 'image/vnd.microsoft.icon'}});
+    res.sendFile(__dirname + '/static/favicon.ico',{headers: {'Content-Type': 'image/vnd.microsoft.icon'}});
 });
-// this is the most important thing.
+// this is the most important thing. note we're using the non-template (true html) version of the index.html file as we don't
+// implement the same templating library that the python implementation uses, 
+// but template/index.html and node_index.html are very similar otherwise.
 app.get('/', function (req, res) {
-  res.sendFile(__dirname + '/public/index.html');
+  res.sendFile(__dirname + '/node_index.html');
 
 });
 
