@@ -18,7 +18,8 @@ var io = require('socket.io')(webserver);
 var express = require('express'); // we use 'app' mostly, but need this too.
 
 // mavlink related stuff:
-var mavlink = require("./mav_v1.js");  // this is the autogeneraterd js mavlink library  
+var mavlink_ = require("./mav_v1.js");  // this is the autogeneraterd js mavlink library  
+var mavlink = require("./mav_v2.js");  // this is the autogeneraterd js mavlink library  
 var MavParams = require("./assets/mavParam.js");   // these are server-side js libraries for handling some more complicated bits of mavlink
 var MavFlightMode = require("./assets/mavFlightMode.js");
 var MavMission = require('./assets/mavMission.js');
@@ -239,7 +240,7 @@ mavlinkParser.on('HEARTBEAT', function(message) {
 
     if (  sysid_to_ip_address[message.header.srcSystem] == null )  {
           console.log(`Got first heartbeat message from ${udpserver.last_ip_address.address}:${udpserver.last_ip_address.port}, not repeating this. `);
-    } 
+    }
 
     //    keep a record of the sysid <-> ip address and port info on-hand for when we want to *send*.
     sysid_to_ip_address[message.header.srcSystem] = udpserver.last_ip_address;
