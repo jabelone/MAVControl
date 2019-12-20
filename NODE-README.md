@@ -2,7 +2,7 @@
 # rest of MAVControl, but here's some random notes about it... 
 
 # how I utilise the 'pymavlink' generator to auto-generate a mavlink1/2 parser:
-cp ./make_javascript.sh ~/GCS/mavlink/pymavlink/
+cp ~/GCS/MAVControl/make_javascript.sh ~/GCS/mavlink/pymavlink/
 cd ~/GCS/mavlink/pymavlink/
 ./make_javascript.sh
 cp ~/GCS/mavlink/pymavlink/generator/javascript/v1/mav_v1.js ~/GCS/MAVControl/
@@ -22,3 +22,5 @@ node mavudp_to_ws_server.js
 ---------
 this is the all-in example with a webserver with websockets AND a UDP mavlink listener/parser, AND supports parsing mavlink params, mission, flightmodes ( alpha),  AND it collects up all the state information that we get from the MAV into a Backbone.js based model ( server-side state-holding element for convenience ), AND it periodically pushes the entire state through the websocket to any web-browser/s that might be present.     TODO , implement the client-side browser support for this in something like MAVControl.
 
+
+param set serial0_protocol 2
