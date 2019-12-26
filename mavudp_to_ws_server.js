@@ -19,10 +19,10 @@ var express = require('express'); // we use 'app' mostly, but need this too.
 
 // mavlink related stuff:
 var mavlink1 = require("./mav_v1.js");  // this is the autogeneraterd js mavlink library  
-var mavlinkParser1 = new MAVLink(logger, 11,0);
+var mavlinkParser1 = new MAVLink10Processor(logger, 11,0);
 
 var mavlink2 = require("./mav_v2.js");  // this is the autogeneraterd js mavlink library  
-var mavlinkParser2 = new MAVLinkProcessor2(logger, 11,0);
+var mavlinkParser2 = new MAVLink20Processor(logger, 11,0);
 
 var MavParams = require("./assets/mavParam.js");   // these are server-side js libraries for handling some more complicated bits of mavlink
 var MavFlightMode = require("./assets/mavFlightMode.js");
@@ -288,8 +288,8 @@ var sysid = 12; // lets assume just one sysid for now.
 // looks for flight-mode changes on this specific sysid only
 var mavFlightModes = [];
 // no idea if two if these will work togehter...
-mavFlightModes.push(new MavFlightMode(mavlink, mavlinkParser1, null, logger,sysid));
-mavFlightModes.push(new MavFlightMode(mavlink, mavlinkParser2, null, logger,sysid));
+mavFlightModes.push(new MavFlightMode(mavlink1, mavlinkParser1, null, logger,sysid));
+mavFlightModes.push(new MavFlightMode(mavlink2, mavlinkParser2, null, logger,sysid));
 
 
 // MavParams are for handling loading parameters
@@ -456,9 +456,9 @@ var heartbeat_handler2 =  function(message) {
         //console.log("ADD:"+JSON.stringify(AllVehicles));
 
         // assemble a new MavFlightMode hook to watch for this sysid:
-        mavFlightModes.push(new MavFlightMode(mavlink, mavlinkParser1, null, logger,tmp_sysid));
+        mavFlightModes.push(new MavFlightMode(mavlink1, mavlinkParser1, null, logger,tmp_sysid));
         // todo
-        mavFlightModes.push(new MavFlightMode(mavlink, mavlinkParser2, null, logger,tmp_sysid));
+        mavFlightModes.push(new MavFlightMode(mavlink2, mavlinkParser2, null, logger,tmp_sysid));
 
         // re-hook all the MavFlightMode objects to their respective events, since we just added a new one.
         mavFlightModes.forEach(  function(m) {
@@ -468,7 +468,7 @@ var heartbeat_handler2 =  function(message) {
                 console.log(`----------Got a MODE-CHANGE message from ${udpserver.last_ip_address.address}:${udpserver.last_ip_address.port} `);
                 console.log(`... with armed-state: ${state.armed} and sysid: ${sysid} and mode: ${state.mode} and mavlink type: ${udpserver.last_mavlink_type}`);
 
-                var current_vehicle = AllVehicles.get(sysid); 
+                var current_vehicle = AllVehicles.get(sysid);   
                 if ( current_vehicle) {  
                     current_vehicle.set( m.getState());  // or 'state' is equiv, hopefuly
                 }
