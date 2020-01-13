@@ -1,6 +1,6 @@
 // this is a mavlink UDP listener for ArduPlane style vehicles which then uses a websockets enabled web server 
 // to deliver a web-based GCS that is a slightly-hacked-on version of MAVControl. 
-// incoming UDP mavlink/vehicl/sim data at 0.0.0.0:14550 is parsed to generate messages that are passed off to the MAVControl instance for
+// incoming UDP mavlink/vehicl/sim data at 0.0.0.0:14550 is parsed SERVER SIDE IN NODE.js to generate json messages that are passed off to the MAVControl instance for
 // display of the HUD and MAP etc. 
 // uses express 4 + socket.io and 'backbone.js' as a server-side Model for the Vehicle state and a group of Vehicles, and as few other dependancies as possible. 
 //  delivers most static content from /static and socketio stuff from /socket.io and /node_index.html is the main page.
@@ -18,15 +18,19 @@ var io = require('socket.io')(webserver);
 var express = require('express'); // we use 'app' mostly, but need this too.
 
 // mavlink related stuff:
-var mavlink1 = require("./mav_v1.js");  // this is the autogeneraterd js mavlink library  
+var {mavlink10, MAVLink10Processor} = require("./mav_v1.js"); 
 var mavlinkParser1 = new MAVLink10Processor(logger, 11,0);
 
-var mavlink2 = require("./mav_v2.js");  // this is the autogeneraterd js mavlink library  
+var {mavlink20, MAVLink20Processor} = require("./mav_v2.js"); 
 var mavlinkParser2 = new MAVLink20Processor(logger, 11,0);
+
+
 
 var MavParams = require("./assets/mavParam.js");   // these are server-side js libraries for handling some more complicated bits of mavlink
 var MavFlightMode = require("./assets/mavFlightMode.js");
 var MavMission = require('./assets/mavMission.js');
+
+console.log(JSON.stringify(MavFlightMode));
 
 // config and backend libraries:
 var nconf = require("nconf");
@@ -288,8 +292,9 @@ var sysid = 12; // lets assume just one sysid for now.
 // looks for flight-mode changes on this specific sysid only
 var mavFlightModes = [];
 // no idea if two if these will work togehter...
-mavFlightModes.push(new MavFlightMode(mavlink1, mavlinkParser1, null, logger,sysid));
-mavFlightModes.push(new MavFlightMode(mavlink2, mavlinkParser2, null, logger,sysid));
+
+mavFlightModes.push(new MavFlightMode(mavlink10, mavlinkParser1, null, logger,sysid));
+mavFlightModes.push(new MavFlightMode(mavlink20, mavlinkParser2, null, logger,sysid));
 
 
 // MavParams are for handling loading parameters
@@ -423,7 +428,8 @@ In simple terms, it adds properties from other objects (source) on to a target o
 //-------------------------------------------------------------
 
 
-
+// the '2' in this name is not a mavlink2 thing, it's becasue we've got two different hooks on the 'heartbeat' right now for convenience.
+// we can surely merge them as some point.
 var heartbeat_handler2 =  function(message) {
     //console.log(`Got a HEARTBEAT message from ${udpserver.last_ip_address.address}:${udpserver.last_ip_address.port} `);
     //console.log(message);
@@ -456,9 +462,9 @@ var heartbeat_handler2 =  function(message) {
         //console.log("ADD:"+JSON.stringify(AllVehicles));
 
         // assemble a new MavFlightMode hook to watch for this sysid:
-        mavFlightModes.push(new MavFlightMode(mavlink1, mavlinkParser1, null, logger,tmp_sysid));
+        mavFlightModes.push(new MavFlightMode(mavlink10, mavlinkParser1, null, logger,tmp_sysid));
         // todo
-        mavFlightModes.push(new MavFlightMode(mavlink2, mavlinkParser2, null, logger,tmp_sysid));
+        mavFlightModes.push(new MavFlightMode(mavlink20, mavlinkParser2, null, logger,tmp_sysid));
 
         // re-hook all the MavFlightMode objects to their respective events, since we just added a new one.
         mavFlightModes.forEach(  function(m) {
@@ -654,6 +660,35 @@ function float(thing) {
 //
 //-------------------------------------------------------------
 
+function decide_which_mavlink_obj_and_return_it(id){
+        var mavlink = null;
+        switch (sysid_to_mavlink_type[id]) 
+        {
+            case 1:
+                return mavlink10;
+                break;
+            case 2:
+                return mavlink20;
+                break;
+            default:
+             console.log("ERROR, vehicle does not identify as MAVlINK1 or mAVLINK2!!!");
+        }
+}
+function decide_which_mavlink_parser_and_return_it(id){
+        var mavlink = null;
+        switch (sysid_to_mavlink_type[id]) 
+        {
+            case 1:
+                return mavlinkParser1;
+                break;
+            case 2:
+                return mavlinkParser2;
+                break;
+            default:
+             console.log("ERROR, vehicle does not identify as MAVlINK1 or mAVLINK2!!!");
+        }
+}
+
 nsp.on('connection', function(socket) {
 
     io.of(IONameSpace).emit('news', { hello: 'Welcome2'});
@@ -673,15 +708,16 @@ nsp.on('connection', function(socket) {
     // websocket messages from the browser-GCS to us: 
 
     socket.on('arm', function(id){
+
+        var mavlink = decide_which_mavlink_parser_and_return_it(id);  // could be a pointer to mavlink1 or mavlink2 h
+
         var target_system = id, target_component = 0, command = mavlink.MAV_CMD_COMPONENT_ARM_DISARM, confirmation = 0, 
             param1 = 1, param2 = 0, param3 = 0, param4 = 0, param5 = 0, param6 = 0, param7 = 0;
         // param1 is 1 to indicate arm
         var command_long = new mavlink.messages.command_long(target_system, target_component, command, confirmation, 
                                                          param1, param2, param3, param4, param5, param6, param7)
+        mavlink.send(command_long);
 
-        var mtype = sysid_to_mavlink_type[id];
-        if ( mtype == 1 ) mavlinkParser1.send(command_long);
-        if ( mtype == 2 ) mavlinkParser2.send(command_long);
 
         console.log("arm sysid:"+id);
       });

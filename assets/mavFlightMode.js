@@ -64,13 +64,15 @@ var mode_mapping_acm = {
 
 
 function MavFlightMode(mavlinkObject, mavlinkParserObject, uavConnectionObject, logger,passed_sysid) {
+    console.log(JSON.stringify(mavlinkObject));
 	mavlink = mavlinkObject;
 	mavlinkParser = mavlinkParserObject;
 	uavConnection = uavConnectionObject;
 	log = logger;
     sysid = passed_sysid;
-	this.attachHandlers();
-    console.log(`MavFlightMode is looking for mode/arming changes with sysid: ${sysid}`);
+	this.attachHandlers(); 
+    var v = mavlinkObject.WIRE_PROTOCOL_VERSION; // = "1.0";
+    console.log(`MavFlightMode is looking for mode/arming changes with sysid: ${sysid} and mav type ${v}`);
 }
 
 util.inherits(MavFlightMode, events.EventEmitter);
