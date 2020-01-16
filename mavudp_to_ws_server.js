@@ -768,10 +768,11 @@ nsp.on('connection', function(socket) {
         modenum = mode_mapping_inv[mode];
         var target_system = sysid, /* base_mode = 217, */ custom_mode = modenum; 
 
-        set_mode_message = new mavlink.messages.set_mode(target_system, mavlink.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED, custom_mode);                        
-        mavlinkParser.send(set_mode_message);
+        set_mode_message = new mavlink10.messages.set_mode(target_system, mavlink10.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED, custom_mode);                        
+        mavlinkParser1.send(set_mode_message);
                      
         console.log(`do_change_mode sysid: ${sysid} to mode: ${mode}`);
+        console.log(set_mode_message);
     });
 
     // 
