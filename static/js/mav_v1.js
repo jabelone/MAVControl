@@ -11,9 +11,40 @@ Note: this file has been auto-generated. DO NOT EDIT
 //    events = require("events"),
 //    util = require("util");
 
-// Add a convenience method to Buffer
-Buffer.prototype.toByteArray = function () {
-  return Array.prototype.slice.call(this, 0)
+jspack = new JSPack();
+
+// Buffer class
+Buffer = function(buffer) {
+  let b = {};
+  b.x = new Uint8Array(buffer);  //typed array represents an array of 8-bit unsigned integers. 
+                                //The contents are initialized to 0
+  b.toByteArray = function () {
+    result = [];
+    for( i = 0 ; i < this.x.byteLength; i ++) {
+        result.push(this.x[i]);
+    }
+    return result;
+  }
+
+  b.concat = function (a,b) {
+
+    var to = typeof a;
+    var tox = typeof a.x;
+    if ( to == 'object' &&  tox == 'object'){ 
+
+         var c =  new Uint8Array(a.x.byteLength + b.length); 
+         c.set(a);
+         c.set(b, a.length);
+         return c;         
+
+     }
+
+     var c =  new Uint8Array(a.length + b.length); 
+     c.set(a);
+     c.set(b, a.length);
+     return c;  // return a new array made up of a and b
+  }
+  return b;
 }
 
 mavlink10 = function(){};
@@ -23,7 +54,8 @@ mavlink10.x25Crc = function(buffer, crcIN) {
 
     var bytes = buffer;
     var crcOUT = crcIN || 0xffff;
-    _.each(bytes, function(e) {
+// non-underscore alternatave to the _.each
+    foreach(bytes, function(e) {
         var tmp = e ^ (crcOUT & 0xff);
         tmp = (tmp ^ (tmp << 4)) & 0xff;
         crcOUT = (crcOUT >> 8) ^ (tmp << 8) ^ (tmp << 3) ^ (tmp >> 4);
@@ -73,7 +105,8 @@ mavlink10.message = function() {};
 
 // Convenience setter to facilitate turning the unpacked array of data into member properties
 mavlink10.message.prototype.set = function(args) {
-    _.each(this.fieldnames, function(e, i) {
+    // non-underscore alternatave to the _.each
+    foreach(this.fieldnames, function(e, i) {
         this[e] = args[i];
     }, this);
 };
@@ -8561,8 +8594,8 @@ MAVLink10Processor = function(logger, srcSystem, srcComponent) {
     this.logger = logger;
 
     this.seq = 0;
-    this.buf = new Buffer.from([]);
-    this.bufInError = new Buffer.from([]);
+    this.buf = new Buffer([]);
+    this.bufInError = new Buffer([]);
    
     this.srcSystem = (typeof srcSystem === 'undefined') ? 0 : srcSystem;
     this.srcComponent =  (typeof srcComponent === 'undefined') ? 0 : srcComponent;
@@ -8585,8 +8618,43 @@ MAVLink10Processor = function(logger, srcSystem, srcComponent) {
     
 }
 
+// based on a similar node feature
+class EventEmitter{
+    constructor(){
+        this.callbacks = {}
+    }
+
+    on(event, cb){
+        if (this.callbacks == undefined ) {this.callbacks = {};}
+        if(!this.callbacks[event]) this.callbacks[event] = [];
+        console.log('listening for: '+event);
+        this.callbacks[event].push(cb)
+    }
+
+    emit(event, data){
+        if (this.callbacks == undefined ) {this.callbacks = {};}
+        //if ( event != 'message' ) console.log(event);
+        let cbs = this.callbacks[event]
+        if(cbs){
+            cbs.forEach(cb => cb(data))
+        }
+    }
+}
+// based on a similar node feature in the 'util' library
+inherits = function(ctor, superCtor) {
+  ctor.super_ = superCtor;
+  ctor.prototype = Object.create(superCtor.prototype, {
+    constructor: {
+      value: ctor,
+      enumerable: false,
+      writable: true,
+      configurable: true
+    }
+  });
+};
+
 // Implements EventEmitter
-util.inherits(MAVLink10Processor, events.EventEmitter);
+inherits(MAVLink10Processor, EventEmitter);
 
 // If the logger exists, this function will add a message to it.
 // Assumes the logger is a winston object.
@@ -8619,7 +8687,8 @@ MAVLink10Processor.prototype.bytes_needed = function() {
 // add data to the local buffer
 MAVLink10Processor.prototype.pushBuffer = function(data) {
     if(data) {
-        this.buf = Buffer.concat([this.buf, data]);
+        let x = new Buffer();
+        this.buf = x.concat(this.buf, data);
         this.total_bytes_received += data.length;
     }
 }
@@ -8676,7 +8745,7 @@ MAVLink10Processor.prototype.parseChar = function(c) {
         this.log('error', e.message);
         this.total_receive_errors += 1;
         m = new mavlink10.messages.bad_data(this.bufInError, e.message);
-        this.bufInError = new Buffer.from([]);
+        this.bufInError = new Buffer([]);
         
     }
 
@@ -8731,7 +8800,7 @@ MAVLink10Processor.prototype.parseBuffer = function(s) {
     if ( null === m ) {
         return null;
     }
-    
+
     // While more valid messages can be read from the existing buffer, add
     // them to the array of new messages and return them.
     var ret = [m];
@@ -8745,6 +8814,61 @@ MAVLink10Processor.prototype.parseBuffer = function(s) {
     }
 
 }
+
+/*   below blantantly ripped from underscore.js so we don't have to explicitly depend on it any more.*/
+  var MAX_ARRAY_INDEX = Math.pow(2, 53) - 1;
+
+  var shallowProperty = function(key) {
+    return function(obj) {
+      return obj == null ? void 0 : obj[key];
+    };
+  };
+
+ var getLength = shallowProperty('length');
+  var isArrayLike = function(collection) {
+    var length = getLength(collection);
+    return typeof length == 'number' && length >= 0 && length <= MAX_ARRAY_INDEX;
+  };
+
+ // Internal function that returns an efficient (for current engines) version
+  // of the passed-in callback, to be repeatedly applied in other Underscore
+  // functions.
+  var optimizeCb = function(func, context, argCount) {
+    if (context === void 0) return func;
+    switch (argCount == null ? 3 : argCount) {
+      case 1: return function(value) {
+        return func.call(context, value);
+      };
+      // The 2-argument case is omitted because we’re not using it.
+      case 3: return function(value, index, collection) {
+        return func.call(context, value, index, collection);
+      };
+      case 4: return function(accumulator, value, index, collection) {
+        return func.call(context, accumulator, value, index, collection);
+      };
+    }
+    return function() {
+      return func.apply(context, arguments);
+    };
+  };
+
+function foreach(obj, iteratee, context) {
+    iteratee = optimizeCb(iteratee, context);
+    var i, length;
+    if (isArrayLike(obj)) {
+      for (i = 0, length = obj.length; i < length; i++) {
+        iteratee(obj[i], i, obj);
+      }
+    } else {
+      var keys = x.keys(obj);
+      for (i = 0, length = keys.length; i < length; i++) {
+        iteratee(obj[keys[i]], keys[i], obj);
+      }
+    }
+    return obj;
+  };
+/*   above blantantly ripped from underscore.js */
+
 
 /* decode a buffer as a MAVLink message */
 MAVLink10Processor.prototype.decode = function(msgbuf) {
@@ -8773,7 +8897,13 @@ MAVLink10Processor.prototype.decode = function(msgbuf) {
         throw new Error("Invalid MAVLink message length.  Got " + (msgbuf.length - (mavlink10.HEADER_LEN + 2)) + " expected " + mlen + ", msgId=" + msgId);
     }
 
-    if( false === _.has(mavlink10.map, msgId) ) {
+// node underscore library.
+//    if( false === _.has(mavlink10.map, msgId) ) {
+//        throw new Error("Unknown MAVLink message ID (" + msgId + ")");
+//    }
+// browser alternative:
+
+    if( false === mavlink10.map.hasOwnProperty(msgId) ) {
         throw new Error("Unknown MAVLink message ID (" + msgId + ")");
     }
 
@@ -8810,7 +8940,8 @@ MAVLink10Processor.prototype.decode = function(msgbuf) {
 
     // Reorder the fields to match the order map
     var args = [];
-    _.each(t, function(e, i, l) {
+// non-underscore alternative to the above
+    foreach(t, function(e, i, l) {
         args[i] = t[decoder.order_map[i]]
     });
 
