@@ -91,13 +91,11 @@ var udpwriter = function(msg) {
 
 }
 
-
 //-------------------------------------------------------------
 //
 //
 //
 //-------------------------------------------------------------
-
 
 // hook udp reciever/listener events to actions:
 udpserver.on('error', (err) => {
@@ -120,45 +118,24 @@ udpserver.on('message', (msg, rinfo) => {
 
     var array_of_chars = Uint8Array.from(msg) // from Buffer to byte array
 
-    // hack to only pass mav1 for now...
-     if (array_of_chars[0] == 253 ) { 
-       // console.log('sending mav2');
-       // return;
-      } 
-
-     if (array_of_chars[0] == 254 ) { 
-       // console.log('sending mav1');
-      } 
-
-    // test code to only look at a specific type of packet.
-    //if (array_of_chars[5] == 0x93){
-        //console.log(msg);
-        //console.log(`server got: msg from ${rinfo.address}:${rinfo.port}`);
-    //}
+    // if (array_of_chars[0] == 253 )  console.log('sending mav2');
+    // if (array_of_chars[0] == 254 )  console.log('sending mav1');
  
-    // record last ip address we saw, a
+    // record last ip address we saw
     udpserver.last_ip_address = rinfo;
-
-
-    // we push the incoming mavlink to webocket, basically as-is, just converted to a byte-array first.
-    //io.of(IONameSpace).emit('MAVLINK', array_of_chars); // send to client as a naked {} object
-
+   
     // two options... either with or without the namespace, both wrapped in a length-3 array with ip and port.
     io.of(IONameSpace).emit('MAVLINK', [msg,rinfo.address,rinfo.port]); // send to client as an [ArrayBuffer , source ip, source port triple]
     //io.emit('MAVLINK', [msg,rinfo.address,rinfo.port]); // send to client as an [ArrayBuffer , source ip, source port triple]
 
 
-
-    
 });
 
 
 // lookup table we populate later - when we support multiple incoming udp streams (one per sysid)
 sysid_to_ip_address = {};
 
-
 udpserver.bind(14550+offset);
-
 
 
 //-------------------------------------------------------------
@@ -166,7 +143,6 @@ udpserver.bind(14550+offset);
 // small utility functions
 //
 //-------------------------------------------------------------
-
 
 function getTime() {
     var date = new Date();
@@ -183,7 +159,6 @@ function getTime() {
 function float(thing) { 
     return thing;
 }
-
 
 //-------------------------------------------------------------
 //
@@ -211,15 +186,7 @@ nsp.on('connection', function(websocket) {
         
     }, 1000);
 
-
-   websocket.on('do_change_mode',  function(sysid,mode) { 
-                     
-        console.log(`do_change_mode NOTHING sysid: ${sysid} to mode: ${mode}`);
-    });
-
-
     // websocket messages from the browser-GCS to us: 
-
     websocket.on('MAVLINKOUT', function(message){
 
         const b = Buffer.from(message[0]);// convert from array object to Buffer so we can send it.
@@ -237,12 +204,7 @@ nsp.on('connection', function(websocket) {
         console.log("MAVLINKOUT:");
         console.log(message);
 
-        //buffer = new Buffer(message.pack(mavlinkParser));
-        //connection.write(buffer);
-
-      });
-
-  
+      });  
 });
 
 
