@@ -8839,7 +8839,7 @@ MAVLink10Processor.prototype.parseBuffer = function(s) {
       case 1: return function(value) {
         return func.call(context, value);
       };
-      // The 2-argument case is omitted because we’re not using it.
+      // The 2-argument case is omitted because were not using it.
       case 3: return function(value, index, collection) {
         return func.call(context, value, index, collection);
       };

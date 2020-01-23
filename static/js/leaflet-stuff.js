@@ -109,11 +109,11 @@ let zoomGranularity = 0.2;
 		      callback: centerMap
 	      }, '-', {
 		      text: 'Zoom in',
-		      icon: 'images/zoom-in.png',
+		      icon: 'static/img/zoom-in.png',
 		      callback: zoomIn
 	      }, {
 		      text: 'Zoom out',
-		      icon: 'images/zoom-out.png',
+		      icon: 'static/img/zoom-out.png',
 		      callback: zoomOut
 	  }]
       });
