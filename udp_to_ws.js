@@ -122,8 +122,8 @@ udpserver.on('message', (msg, rinfo) => {
 
     // hack to only pass mav1 for now...
      if (array_of_chars[0] == 253 ) { 
-       // console.log('dropping mav2');
-        return;
+       // console.log('sending mav2');
+       // return;
       } 
 
      if (array_of_chars[0] == 254 ) { 

@@ -14,8 +14,10 @@ let auto_scroll_messages = true;
 // we can do multiple vehicles at a time... 
 // the index into this array is a list of incoming sysid and the value is the IP and port that it points to.
 sysid_to_ip_address = {};
+sysid_to_mavlink_type = {}; // so we know which parser to use when sending.
 
 var mavlinkParser1 =  null; 
+var mavlinkParser2 =  null; 
 // the in-browser mavlink parser is optional depending on what server backend you are using.
 // eg 'node udp_to_ws.js' backend assumes all mavlink is handled in-browser, see MAVLINK and MAVLINKOUT references in code.
 // eg 'node mavudp_to_ws_server.js' backend assumes all mavlink is handled by the server and sends JSON type stuff to the browser.
@@ -53,7 +55,7 @@ socket.emit = function () {
         }
 
         // no parser instantiated means we aren't doing it on-browser, so we just send the json msg straight to the server as-is
-        if (mavlinkParser1 == null ){
+        if (mavlinkParser1 == null && mavlinkParser2 == null ){
             _emit.apply(this, arguments);
 
         } else { 
@@ -92,7 +94,8 @@ $(document).ready(function () {
     socket.on('MAVLINK', function (message) {
     // Now we're going to allow these messages to be parsed, and the 
     //  derived data faked in a way that makes them look like they cam in via the websocket
-         if (mavlinkParser1 == null ) { 
+        // for now we'll build both parsers in-browser if we ar ebuilding either.
+         if (mavlinkParser1 == null ) {  
 
             // create the parser
             mavlinkParser1 = new MAVLink10Processor(null, 11,0); 
@@ -126,6 +129,40 @@ $(document).ready(function () {
 
         }
 
+         if (mavlinkParser2 == null ) {  
+
+            // create the parser
+            mavlinkParser2 = new MAVLink20Processor(null, 12,0); 
+
+            // we overwrite the default send() instead of overwriting write() or using setConnection(), which don't know the ip or port info.
+            // and we accept ip/port either as part of the mavmsg object, or as a sysid in the OPTIONAL 2nd parameter
+            //var origsend = MAVLink10Processor.prototype.send;
+            MAVLink20Processor.prototype.send = function(mavmsg,sysid) {
+                // this is really just part of the original send()
+                buf = mavmsg.pack(this);
+
+                  // where we want the packet to go on the network.. sneak it into the already parsed object that still wraps the raw bytes.
+                if (mavmsg.ip == undefined || mavmsg.port == undefined){
+                    mavmsg.ip = sysid_to_ip_address[sysid].ip;
+                    mavmsg.port = sysid_to_ip_address[sysid].port;
+                }
+                if (mavmsg.ip == undefined || mavmsg.port == undefined){
+                 console.log("unable to determine SEND ip/port from packet or sysid, sorry, discarding. sysid:${sysid}  msg:${mavmsg}");
+                 return;
+                }
+
+                //this.file.write(buf); // we replace this
+                socket.emit('MAVLINKOUT', [buf,mavmsg.ip,mavmsg.port]); // with this..
+
+                // this is really just part of the original send()
+                this.seq = (this.seq + 1) % 256;
+                this.total_packets_sent +=1;
+                this.total_bytes_sent += buf.length;
+            }
+
+
+        }
+
         // when coming from udp_to_ws.js node server
         // message = [data,sourceip,sourceport]
 
@@ -133,22 +170,28 @@ $(document).ready(function () {
         var array_of_chars = new Uint8Array(message[0]) // from generic ArrayBuffer to specific Uint8Array byte-array-buffer
         // store away the source ip and sorce port for use in mavlink_incoming_parser_message_handler later
 
-        // toDO support mav2 as well as mav2 with dual parsers.
-        //if (array_of_chars[0] == 253 ) { 
-        //mavlinkParser2.parseBuffer(array_of_chars);
-        //} 
-        //if (array_of_chars[0] == 254 ) { 
+
+        var packetlist = [];
+        var mavlinktype = undefined;
+        // lets try to support mav1/mav2 with dual parsers.
+        if (array_of_chars[0] == 253 ) { 
+            packetlist = mavlinkParser2.parseBuffer(array_of_chars); 
+            mavlinktype = 2; // known bug, at the moment we assume that if we parsed ONE packet for this sysid in the start of the stream as mav1 or mav2, then they all are
+        } 
+        if (array_of_chars[0] == 254 ) { 
+            packetlist = mavlinkParser1.parseBuffer(array_of_chars); 
+            mavlinktype = 1; 
+        }
+        // if neither, then we do nothing with the empty [] packet list anyway.
 
         //parseBuffer COULD 'emit' messages with the parsed result, because of the 'generic' capture using mavlinkParser1.on(..) above
         // , the packets would trigger a call to mavlink_incoming_parser_message_handler with the result, but no ip/port data would be kept through 
         //   the 'emit()' process. 
-
         // we instead / ALSO returns the array-of-chars as an array of mavlink packets, possibly 'none', [ p] single packet , or [p,p,p] packets.
-        var packetlist = mavlinkParser1.parseBuffer(array_of_chars); 
 
         // here's where we store the sorce ip and port with each packet we just made, AFTER the now-useless 'emit' which can't easily do this..
         for (msg of packetlist){  
-            mavlink_incoming_parser_message_handler(msg,message[1],message[2] );  // [1] = ip  and [2] = port
+            mavlink_incoming_parser_message_handler(msg,message[1],message[2],mavlinktype );  // [1] = ip  and [2] = port
         }
 
     });

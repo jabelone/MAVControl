@@ -22,6 +22,8 @@ var mavlink_outgoing_parser_message_handler = function(x,arguments) {
     //    console.log('socket._emit ', arguments);
     //}
 
+    var mavtype = sysid_to_mavlink_type[sysid]; // 1 or 2
+
     if (event == 'do_change_mode') {  
         sysid = arguments[1]; 
         mode = arguments[2]; 
@@ -32,16 +34,23 @@ var mavlink_outgoing_parser_message_handler = function(x,arguments) {
         /* base_mode = 217, */ 
         var custom_mode = modenum; 
 
-        // todo mav2
-        set_mode_message = new mavlink10.messages.set_mode(target_system, mavlink10.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED, custom_mode); 
-     
-        console.log(`do_change_mode sysid: ${sysid} to mode: ${mode}`);  
+        console.log(`do_change_mode sysid: ${sysid} to mode: ${mode} and mavlink type: ${mavtype}`);  
         console.log(set_mode_message);  
 
-        // finally this causes the parser to call our custom send() and actually emit() them out the websocket.
-        // out the websocket, async, it's not done here.  ( mavlinkParser1.file.write() is what's actualy used finally
-        mavlinkParser1.send(set_mode_message,sysid);  // by passing the 2nd param, sysid here, send() can determine which ip/port to send to as well.
-
+        var set_mode_message = undefined;
+        if (mavtype == 1 ){
+            set_mode_message = new mavlink10.messages.set_mode(target_system, mavlink10.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED, custom_mode); 
+            // finally this causes the parser to call our custom send() and actually emit() them out the websocket.
+            // out the websocket, async, it's not done here.  
+            mavlinkParser1.send(set_mode_message,sysid);  // by passing the 2nd param, sysid here, send() can determine which ip/port to send to as well.
+         }
+        if (mavtype == 2 ){
+            set_mode_message = new mavlink20.messages.set_mode(target_system, mavlink20.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED, custom_mode); 
+            mavlinkParser1.send(set_mode_message,sysid);  // by passing the 2nd param, sysid here, send() can determine which ip/port to send to as well.
+         }
+        if (set_mode_message == undefined ){ 
+            console.log("mavtype error prevented message from being built"); 
+        }
 
     }
 
@@ -55,7 +64,7 @@ var mavlink_outgoing_parser_message_handler = function(x,arguments) {
 // after INCOMiNG MAVLINK goes thru the mavlink parser in the browser, it dispatches them to here...
 //  where we pull the relevant bits of the mavlink packets out into JSON and send them 
 //  through the 'msghandler' EventEmitter to the 'msghandler.on(...)' calls to update the UI
-var mavlink_incoming_parser_message_handler = function(message,ip,port) {
+var mavlink_incoming_parser_message_handler = function(message,ip,port,mavlinktype) {
 
     if (typeof message.header == 'undefined'){ 
         console.log('message.header UNDEFINED, skipping packet:'); 
@@ -69,6 +78,7 @@ var mavlink_incoming_parser_message_handler = function(message,ip,port) {
     }
     // by having this inside the above if() the source port and ip can't change without a page reload, having it below, it keeps uptodate.
     sysid_to_ip_address[message.header.srcSystem] = {'ip':ip, 'port':port}; 
+    sysid_to_mavlink_type[message.header.srcSystem] =    mavlinktype; // 1 or 2
 
     // console.log all the uncommon message types we DONT list here.    
     if ( ! [ 'VFR_HUD','GPS_RAW_INT', 'ATTITUDE', 'SYS_STATUS', 'GLOBAL_POSITION_INT', 'HEARTBEAT','VIBRATION',
