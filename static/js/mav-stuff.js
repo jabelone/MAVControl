@@ -34,20 +34,13 @@ var mavlink_outgoing_parser_message_handler = function(x,arguments) {
 
         // todo mav2
         set_mode_message = new mavlink10.messages.set_mode(target_system, mavlink10.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED, custom_mode); 
-
-        // lookup and store the address/port we want it to go to for later elsewhere 
-        udpserver.last_ip_address_out = sysid_to_ip_address[sysid]; 
-        console.log('udpserver.last_ip_address_out = sysid_to_ip_address[sysid];');  
-        console.log(udpserver.last_ip_address_out);
-        console.log(sysid_to_ip_address); 
-        //the above are both undefined. ip and port 
      
         console.log(`do_change_mode sysid: ${sysid} to mode: ${mode}`);  
         console.log(set_mode_message);  
 
-        // finally this causes the parser to call into mavlink_emit_from_parser with the results and send them 
-        // out the websocket, async, it's not done here.
-        mavlinkParser1.send(set_mode_message);
+        // finally this causes the parser to call our custom send() and actually emit() them out the websocket.
+        // out the websocket, async, it's not done here.  ( mavlinkParser1.file.write() is what's actualy used finally
+        mavlinkParser1.send(set_mode_message,sysid);  // by passing the 2nd param, sysid here, send() can determine which ip/port to send to as well.
 
 
     }
@@ -62,7 +55,7 @@ var mavlink_outgoing_parser_message_handler = function(x,arguments) {
 // after INCOMiNG MAVLINK goes thru the mavlink parser in the browser, it dispatches them to here...
 //  where we pull the relevant bits of the mavlink packets out into JSON and send them 
 //  through the 'msghandler' EventEmitter to the 'msghandler.on(...)' calls to update the UI
-var mavlink_incoming_parser_message_handler = function(message) {
+var mavlink_incoming_parser_message_handler = function(message,ip,port) {
 
     if (typeof message.header == 'undefined'){ 
         console.log('message.header UNDEFINED, skipping packet:'); 
@@ -70,15 +63,12 @@ var mavlink_incoming_parser_message_handler = function(message) {
         return; 
     }
 
-
     // it's been parsed, and must be a valid mavlink packet, and thus must have a sysid available now..
     if (  sysid_to_ip_address[message.header.srcSystem] == null )  {
-          console.log(`Got first PARSED MSG from sysid:${message.header.srcSystem} src:${udpserver.last_ip_address.address}:${udpserver.last_ip_address.port}, not repeating this. `);
+          console.log(`Got first PARSED MSG from sysid:${message.header.srcSystem} src:${ip}:${port}, not repeating this. `);
     }
-    //    keep a record of the sysid <-> ip address and port info on-hand for when we want to *send*.
-    sysid_to_ip_address[message.header.srcSystem] = udpserver.last_ip_address;
-            console.log("ASSIGNING:");             console.log(sysid_to_ip_address); 
-    //sysid_to_mavlink_type[message.header.srcSystem] = udpserver.last_mavlink_type;
+    // by having this inside the above if() the source port and ip can't change without a page reload, having it below, it keeps uptodate.
+    sysid_to_ip_address[message.header.srcSystem] = {'ip':ip, 'port':port}; 
 
     // console.log all the uncommon message types we DONT list here.    
     if ( ! [ 'VFR_HUD','GPS_RAW_INT', 'ATTITUDE', 'SYS_STATUS', 'GLOBAL_POSITION_INT', 'HEARTBEAT','VIBRATION',

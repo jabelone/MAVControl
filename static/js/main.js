@@ -11,7 +11,8 @@ let delay = 10; //milliseconds
 let i = 0;
 let auto_scroll_messages = true;
 
-// we can do multiple vehicles at a time...
+// we can do multiple vehicles at a time... 
+// the index into this array is a list of incoming sysid and the value is the IP and port that it points to.
 sysid_to_ip_address = {};
 
 var mavlinkParser1 =  null; 
@@ -66,20 +67,6 @@ socket.emit = function () {
 // ================== MAV init stuff and mav callbacks is mostly in mav-stuff.js  ==================
 
 
-// ================== other global vars, and init stuff ==================
-
-// for storing data about last incomping ip and port
-var udpserver = {};
-udpserver.last_ip_address = {};
-udpserver.last_ip_address.address = null;
-udpserver.last_ip_address.port = null;
-udpserver.last_ip_address_out = {};
-udpserver.last_ip_address_out.address = null;
-udpserver.last_ip_address_out.port = null;
-
-
-
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -110,35 +97,32 @@ $(document).ready(function () {
             // create the parser
             mavlinkParser1 = new MAVLink10Processor(null, 11,0); 
 
-            
-            mavlinkParser1.setConnection = function(connection) {
-                this.file = connection;
+            // we overwrite the default send() instead of overwriting write() or using setConnection(), which don't know the ip or port info.
+            // and we accept ip/port either as part of the mavmsg object, or as a sysid in the OPTIONAL 2nd parameter
+            //var origsend = MAVLink10Processor.prototype.send;
+            MAVLink10Processor.prototype.send = function(mavmsg,sysid) {
+                // this is really just part of the original send()
+                buf = mavmsg.pack(this);
+
+                  // where we want the packet to go on the network.. sneak it into the already parsed object that still wraps the raw bytes.
+                if (mavmsg.ip == undefined || mavmsg.port == undefined){
+                    mavmsg.ip = sysid_to_ip_address[sysid].ip;
+                    mavmsg.port = sysid_to_ip_address[sysid].port;
+                }
+                if (mavmsg.ip == undefined || mavmsg.port == undefined){
+                 console.log("unable to determine SEND ip/port from packet or sysid, sorry, discarding. sysid:${sysid}  msg:${mavmsg}");
+                 return;
+                }
+
+                //this.file.write(buf); // we replace this
+                socket.emit('MAVLINKOUT', [buf,mavmsg.ip,mavmsg.port]); // with this..
+
+                // this is really just part of the original send()
+                this.seq = (this.seq + 1) % 256;
+                this.total_packets_sent +=1;
+                this.total_bytes_sent += buf.length;
             }
 
-            // send all well formed and parsed mavlink packets here when they are ready.
-            mavlinkParser1.on('message', mavlink_incoming_parser_message_handler); // see mav-stuff.js
-
-            // udp writer function works same on both mavlink1 and 2
-            var mavlink_emit_from_parser = function(msg) {
-                //console.log(typeof msg);    // Object
-                //console.log(msg); //eg:  (length 14) [254, 6, 0, 11, 0, 11, 10, 0, 0, 0, 3, 1, 111, 242] 
-                //const b = Buffer(msg);// convert from array object to Buffer so we can send it.
-                //console.log(b.toByteArray());  //  Uint8Array(14)
-
-                // where we want the packet to go on the network..
-                var adr = udpserver.last_ip_address_out.address;
-                var prt = udpserver.last_ip_address_out.port;
-
-                  // after turning into proper mavlink, emit it out the real websocket
-                  // along with the original sourceip and source port for this sysid as
-                  // the destination.
-                  socket.emit('MAVLINKOUT', [msg,adr,prt]);
-                  //socket.emit('MAVLINKOUT', msg:msg,adr:adr,prt:prt});
-            }
-
-            // tell mavlink1 library where to write() to? 
-            mavlinkParser1.file = new Object();
-            mavlinkParser1.file.write = mavlink_emit_from_parser;
 
         }
 
@@ -148,8 +132,6 @@ $(document).ready(function () {
         //Create a UInt8Array view referring to the buffer
         var array_of_chars = new Uint8Array(message[0]) // from generic ArrayBuffer to specific Uint8Array byte-array-buffer
         // store away the source ip and sorce port for use in mavlink_incoming_parser_message_handler later
-        udpserver.last_ip_address.address = message[1];
-        udpserver.last_ip_address.port = message[2];
 
         // toDO support mav2 as well as mav2 with dual parsers.
         //if (array_of_chars[0] == 253 ) { 
@@ -157,9 +139,17 @@ $(document).ready(function () {
         //} 
         //if (array_of_chars[0] == 254 ) { 
 
-        //parseBuffer generates 'emit' messages with the parsed result, we need to capture these and pass them on..
-        // and because of the 'generic' capture using mavlinkParser1.on(..) above, the packets trigger a call to mavlink_incoming_parser_message_handler with the result.
-        mavlinkParser1.parseBuffer(array_of_chars); 
+        //parseBuffer COULD 'emit' messages with the parsed result, because of the 'generic' capture using mavlinkParser1.on(..) above
+        // , the packets would trigger a call to mavlink_incoming_parser_message_handler with the result, but no ip/port data would be kept through 
+        //   the 'emit()' process. 
+
+        // we instead / ALSO returns the array-of-chars as an array of mavlink packets, possibly 'none', [ p] single packet , or [p,p,p] packets.
+        var packetlist = mavlinkParser1.parseBuffer(array_of_chars); 
+
+        // here's where we store the sorce ip and port with each packet we just made, AFTER the now-useless 'emit' which can't easily do this..
+        for (msg of packetlist){  
+            mavlink_incoming_parser_message_handler(msg,message[1],message[2] );  // [1] = ip  and [2] = port
+        }
 
     });
 

@@ -118,8 +118,6 @@ udpserver.on('message', (msg, rinfo) => {
       //console.log(`server got: msg from ${rinfo.address}:${rinfo.port}`);
     }
 
-    //console.log(msg);
-
     var array_of_chars = Uint8Array.from(msg) // from Buffer to byte array
 
     // hack to only pass mav1 for now...
@@ -132,26 +130,24 @@ udpserver.on('message', (msg, rinfo) => {
        // console.log('sending mav1');
       } 
 
-    //var mavlink_type = 0;
+    // test code to only look at a specific type of packet.
+    //if (array_of_chars[5] == 0x93){
+        //console.log(msg);
+        //console.log(`server got: msg from ${rinfo.address}:${rinfo.port}`);
+    //}
  
-    // record last ip address we saw, and if this specific device is mavlink1 or mavlink2
+    // record last ip address we saw, a
     udpserver.last_ip_address = rinfo;
-    //udpserver.last_mavlink_type = mavlink_type;
 
 
     // we push the incoming mavlink to webocket, basically as-is, just converted to a byte-array first.
     //io.of(IONameSpace).emit('MAVLINK', array_of_chars); // send to client as a naked {} object
 
+    // two options... either with or without the namespace, both wrapped in a length-3 array with ip and port.
     io.of(IONameSpace).emit('MAVLINK', [msg,rinfo.address,rinfo.port]); // send to client as an [ArrayBuffer , source ip, source port triple]
-   // io.of(IONameSpace).emit('MAVLINK', msg); // send to client as a plain ArrayBuffer
+    //io.emit('MAVLINK', [msg,rinfo.address,rinfo.port]); // send to client as an [ArrayBuffer , source ip, source port triple]
 
-    //eg array-of-chars as seen in-browser:
-    //42/MAVControl,["MAVLINK",{"0":253,"1":4,"2":0,"3":0,"4":203,"5":1,"6":1,"7":12,"8":43,"9":0,"10":63,"11":178,"12":129,"13":38,"14":111,"15":45}]
 
-    //process.stdout.write(".");
-
-    //console.log(msg);    
-    //console.log(array_of_chars);
 
     
 });
@@ -196,18 +192,22 @@ function float(thing) {
 //-------------------------------------------------------------
 
 nsp.on('connection', function(websocket) {
+//io.on('connection', function(websocket) {
 
     io.of(IONameSpace).emit('news', { hello: 'Welcome2'});
+    //io.emit('news', { hello: 'Welcome2'});
     console.log("Client Re/Connect:"+IONameSpace);
 
     websocket.on('my_ping', function(msg){
          io.of(IONameSpace).emit('my_pong'); // this is used by the client-side to measure how long the round-trip is 
+         //io.emit('my_pong'); // this is used by the client-side to measure how long the round-trip is 
     });
 
     // periodically, at 1hz we send the webclient a msg to say we are still alive, kinda like a mavlink heartbeat packet, but not.
     setInterval(function() {  
          //console.log("WS heartbeat internal");
          io.of(IONameSpace).emit('heartbeat', getTime() );
+         //io.emit('heartbeat', getTime() );
         
     }, 1000);
 
