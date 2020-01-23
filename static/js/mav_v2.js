@@ -6,10 +6,10 @@ Generated from: ardupilotmega.xml,common.xml,uAvionix.xml,icarous.xml
 Note: this file has been auto-generated. DO NOT EDIT
 */
 
-jspack = require("jspack").jspack,
-    _ = require("underscore"),
-    events = require("events"),
-    util = require("util");
+//jspack = require("jspack").jspack,
+//    _ = require("underscore"),
+//    events = require("events"),
+//    util = require("util");
 
 // Add a convenience method to Buffer
 Buffer.prototype.toByteArray = function () {
@@ -10184,5 +10184,5 @@ MAVLink20Processor.prototype.decode = function(msgbuf) {
 
 
 // Expose this code as a module
-module.exports = {mavlink20, MAVLink20Processor};
+//module.exports = {mavlink20, MAVLink20Processor};
 
