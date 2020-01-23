@@ -78,7 +78,7 @@ $(document).ready(function () {
 
     $('select').material_select();
 
-
+    
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ====== Handle Socket IO Messages ======
@@ -306,19 +306,23 @@ $(document).ready(function () {
     socket.on('attitude', function (message) {  msghandler.emit('attitude',message); });
     // either socket from server, or parsed mavlink in-browser.
     msghandler.on('attitude', function (message) {
+        var sysid = message.sysid;
+        if ( ! states[sysid] ) return;
 
-        if ( states[current_vehicle] ) {
-            states[current_vehicle].cs.attitude.pitch = message.pitch;
-            states[current_vehicle].cs.attitude.roll = message.roll;
-            states[current_vehicle].cs.attitude.yaw = message.yaw;
-        }
+        // radians * 180.0 / 3.14159 = Angle_in_degrees 
+        states[sysid].cs.attitude.pitch = message.pitch * 180.0 / 3.14159;
+        states[sysid].cs.attitude.roll = message.roll * 180.0 / 3.14159;
+        states[sysid].cs.attitude.yaw = message.yaw * 180.0 / 3.14159;
+
+        // identify vehicle currently being rendered in browser...         
+        let r_sysid = document.getElementById("update_connection_settings_sysid").value;
 
         // don't update the HUD unless it's for the vehicle we are currently using:
-        if ( states[current_vehicle] != message.sysid ) return;
+        if ( r_sysid != message.sysid ) { console.log("no HUD update"); return;}
 
-        let hud_roll = -message.roll;
+        let hud_roll = -states[sysid].cs.attitude.roll;
         //let hud_roll = 0;
-        let pitch_movement = (message.pitch * 0.426) - 50;
+        let pitch_movement = (states[sysid].cs.attitude.pitch * 0.426) - 50;
 
         let movingPanel = document.getElementById('moving-hud-panel');
         let movingBG = document.getElementById('moving-hud-bg');

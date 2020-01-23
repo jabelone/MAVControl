@@ -35,13 +35,11 @@ var mavlink_outgoing_parser_message_handler = function(x,arguments) {
         var custom_mode = modenum; 
 
         console.log(`do_change_mode sysid: ${sysid} to mode: ${mode} and mavlink type: ${mavtype}`);  
-        console.log(set_mode_message);  
 
         var set_mode_message = undefined;
         if (mavtype == 1 ){
             set_mode_message = new mavlink10.messages.set_mode(target_system, mavlink10.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED, custom_mode); 
-            // finally this causes the parser to call our custom send() and actually emit() them out the websocket.
-            // out the websocket, async, it's not done here.  
+            // finally this causes the parser to call our custom send() and actually emit() them out the websocket, not done here.
             mavlinkParser1.send(set_mode_message,sysid);  // by passing the 2nd param, sysid here, send() can determine which ip/port to send to as well.
          }
         if (mavtype == 2 ){
@@ -74,7 +72,7 @@ var mavlink_incoming_parser_message_handler = function(message,ip,port,mavlinkty
 
     // it's been parsed, and must be a valid mavlink packet, and thus must have a sysid available now..
     if (  sysid_to_ip_address[message.header.srcSystem] == null )  {
-          console.log(`Got first PARSED MSG from sysid:${message.header.srcSystem} src:${ip}:${port}, not repeating this. `);
+          console.log(`Got first PARSED MSG from sysid:${message.header.srcSystem} src:${ip}:${port}, mav-proto:${mavlinktype}. Not repeating this. `);
     }
     // by having this inside the above if() the source port and ip can't change without a page reload, having it below, it keeps uptodate.
     sysid_to_ip_address[message.header.srcSystem] = {'ip':ip, 'port':port}; 
@@ -219,6 +217,11 @@ function mode_mapping_inv() {
 
 	return result;
 };
+
+// js objects are already double precision, so no need to change a float into anything else, but this is helpful as a label.
+function float(thing) { 
+    return thing;
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
