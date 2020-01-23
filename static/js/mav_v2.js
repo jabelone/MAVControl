@@ -23,7 +23,8 @@ mavlink20.x25Crc = function(buffer, crcIN) {
 
     var bytes = buffer;
     var crcOUT = crcIN || 0xffff;
-    _.each(bytes, function(e) {
+// non-underscore alternatave to the _.each
+    foreach(bytes, function(e) {
         var tmp = e ^ (crcOUT & 0xff);
         tmp = (tmp ^ (tmp << 4)) & 0xff;
         crcOUT = (crcOUT >> 8) ^ (tmp << 8) ^ (tmp << 3) ^ (tmp >> 4);
@@ -72,7 +73,8 @@ mavlink20.message = function() {};
 
 // Convenience setter to facilitate turning the unpacked array of data into member properties
 mavlink20.message.prototype.set = function(args) {
-    _.each(this.fieldnames, function(e, i) {
+// non-underscore alternatave to the _.each
+    foreach(this.fieldnames, function(e, i) {
         this[e] = args[i];
     }, this);
 };
@@ -9905,8 +9907,8 @@ MAVLink20Processor = function(logger, srcSystem, srcComponent) {
     this.logger = logger;
 
     this.seq = 0;
-    this.buf = new Buffer.from([]);
-    this.bufInError = new Buffer.from([]);
+    this.buf = new Buffer([]);
+    this.bufInError = new Buffer([]);
    
     this.srcSystem = (typeof srcSystem === 'undefined') ? 0 : srcSystem;
     this.srcComponent =  (typeof srcComponent === 'undefined') ? 0 : srcComponent;
@@ -9963,7 +9965,8 @@ MAVLink20Processor.prototype.bytes_needed = function() {
 // add data to the local buffer
 MAVLink20Processor.prototype.pushBuffer = function(data) {
     if(data) {
-        this.buf = Buffer.concat([this.buf, data]);
+        let x = new Buffer();
+        this.buf = x.concat(this.buf, data);
         this.total_bytes_received += data.length;
     }
 }
@@ -10020,7 +10023,7 @@ MAVLink20Processor.prototype.parseChar = function(c) {
         this.log('error', e.message);
         this.total_receive_errors += 1;
         m = new mavlink20.messages.bad_data(this.bufInError, e.message);
-        this.bufInError = new Buffer.from([]);
+        this.bufInError = new Buffer([]);
         
     }
 
@@ -10121,7 +10124,8 @@ MAVLink20Processor.prototype.decode = function(msgbuf) {
         throw new Error("Invalid MAVLink message length.  Got " + (msgbuf.length - (mavlink20.HEADER_LEN + 2)) + " expected " + mlen + ", msgId=" + msgId);
     }
 
-    if( false === _.has(mavlink20.map, msgId) ) {
+    // non-node ism.
+    if( false === mavlink20.map.hasOwnProperty(msgId) ) { 
         throw new Error("Unknown MAVLink message ID (" + msgId + ")");
     }
 
@@ -10162,7 +10166,8 @@ MAVLink20Processor.prototype.decode = function(msgbuf) {
 
     // Reorder the fields to match the order map
     var args = [];
-    _.each(t, function(e, i, l) {
+    // non-underscore alternatave to the _.each
+    foreach(t, function(e, i, l) {
         args[i] = t[decoder.order_map[i]]
     });
 
