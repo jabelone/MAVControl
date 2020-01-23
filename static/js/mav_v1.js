@@ -11,41 +11,12 @@ Note: this file has been auto-generated. DO NOT EDIT
 //    events = require("events"),
 //    util = require("util");
 
-jspack = new JSPack();
-
-// Buffer class
-Buffer = function(buffer) {
-  let b = {};
-  b.x = new Uint8Array(buffer);  //typed array represents an array of 8-bit unsigned integers. 
-                                //The contents are initialized to 0
-  b.toByteArray = function () {
-    result = [];
-    for( i = 0 ; i < this.x.byteLength; i ++) {
-        result.push(this.x[i]);
-    }
-    return result;
-  }
-
-  b.concat = function (a,b) {
-
-    var to = typeof a;
-    var tox = typeof a.x;
-    if ( to == 'object' &&  tox == 'object'){ 
-
-         var c =  new Uint8Array(a.x.byteLength + b.length); 
-         c.set(a);
-         c.set(b, a.length);
-         return c;         
-
-     }
-
-     var c =  new Uint8Array(a.length + b.length); 
-     c.set(a);
-     c.set(b, a.length);
-     return c;  // return a new array made up of a and b
-  }
-  return b;
+// Add a convenience method to Buffer 
+Buffer.prototype.toByteArray = function () { 
+  return Array.prototype.slice.call(this, 0) 
 }
+
+jspack = new JSPack();
 
 mavlink10 = function(){};
 
@@ -8594,8 +8565,8 @@ MAVLink10Processor = function(logger, srcSystem, srcComponent) {
     this.logger = logger;
 
     this.seq = 0;
-    this.buf = new Buffer([]);
-    this.bufInError = new Buffer([]);
+    this.buf = new Buffer.from([]);
+    this.bufInError = new Buffer.from([]);
    
     this.srcSystem = (typeof srcSystem === 'undefined') ? 0 : srcSystem;
     this.srcComponent =  (typeof srcComponent === 'undefined') ? 0 : srcComponent;
@@ -8687,8 +8658,8 @@ MAVLink10Processor.prototype.bytes_needed = function() {
 // add data to the local buffer
 MAVLink10Processor.prototype.pushBuffer = function(data) {
     if(data) {
-        let x = new Buffer();
-        this.buf = x.concat(this.buf, data);
+        //let x = new Buffer();
+        this.buf = Buffer.concat([this.buf, data]);
         this.total_bytes_received += data.length;
     }
 }
@@ -8745,7 +8716,7 @@ MAVLink10Processor.prototype.parseChar = function(c) {
         this.log('error', e.message);
         this.total_receive_errors += 1;
         m = new mavlink10.messages.bad_data(this.bufInError, e.message);
-        this.bufInError = new Buffer([]);
+        this.bufInError = new Buffer.from([]);
         
     }
 

@@ -6,10 +6,13 @@ Generated from: ardupilotmega.xml,common.xml,uAvionix.xml,icarous.xml
 Note: this file has been auto-generated. DO NOT EDIT
 */
 
+// got alternate buffer from https://github.com/feross/buffer and  https://bundle.run/buffer@5.4.3
+
 //jspack = require("jspack").jspack,
 //    _ = require("underscore"),
 //    events = require("events"),
 //    util = require("util");
+
 
 // Add a convenience method to Buffer
 Buffer.prototype.toByteArray = function () {
@@ -9907,8 +9910,8 @@ MAVLink20Processor = function(logger, srcSystem, srcComponent) {
     this.logger = logger;
 
     this.seq = 0;
-    this.buf = new Buffer([]);
-    this.bufInError = new Buffer([]);
+    this.buf = new Buffer.from([]);
+    this.bufInError = new Buffer.from([]);
    
     this.srcSystem = (typeof srcSystem === 'undefined') ? 0 : srcSystem;
     this.srcComponent =  (typeof srcComponent === 'undefined') ? 0 : srcComponent;
@@ -9932,7 +9935,7 @@ MAVLink20Processor = function(logger, srcSystem, srcComponent) {
 }
 
 // Implements EventEmitter
-util.inherits(MAVLink20Processor, events.EventEmitter);
+inherits(MAVLink20Processor, EventEmitter);
 
 // If the logger exists, this function will add a message to it.
 // Assumes the logger is a winston object.
@@ -9965,8 +9968,8 @@ MAVLink20Processor.prototype.bytes_needed = function() {
 // add data to the local buffer
 MAVLink20Processor.prototype.pushBuffer = function(data) {
     if(data) {
-        let x = new Buffer();
-        this.buf = x.concat(this.buf, data);
+        //let x = new Buffer();
+        this.buf = Buffer.concat([this.buf, data]);
         this.total_bytes_received += data.length;
     }
 }
@@ -10023,7 +10026,7 @@ MAVLink20Processor.prototype.parseChar = function(c) {
         this.log('error', e.message);
         this.total_receive_errors += 1;
         m = new mavlink20.messages.bad_data(this.bufInError, e.message);
-        this.bufInError = new Buffer([]);
+        this.bufInError = new Buffer.from([]);
         
     }
 
