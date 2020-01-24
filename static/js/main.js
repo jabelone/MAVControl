@@ -43,10 +43,18 @@ var _emit = socket.emit;
 
 socket.emit = function () {
         event = arguments[0];
+
+        // the usual internal suspects, just handle them in all cases and move on..
+        if (['connect','connect_error','reconnecting','reconnect','reconnect_error','reconnect_attempt','disconnect'].includes(event)){
+            _emit.apply(this, arguments);
+            return this;
+        }
+
         // these pingy things happen a lot, so don't log them as it's just clutter
         if (event != 'my_ping' && event != 'ping' && event != 'pong' ) {
             console.log('Xsocket._emit ', arguments);
         }
+
 
         // after going from parsed packet into raw MAVLINK bytes, we loop around again and then really emit them here as a special case
         if (event == "MAVLINKOUT" ){
@@ -57,13 +65,14 @@ socket.emit = function () {
         // no parser instantiated means we aren't doing it on-browser, so we just send the json msg straight to the server as-is
         if (mavlinkParser1 == null && mavlinkParser2 == null ){
             _emit.apply(this, arguments);
+            return this;
 
         } else { 
         // if we have a in-browser mavlink parser, and the message isn't flagged as MAVLINK
         // then we pass it off to the parser to be converted from json back onto mavlink before letting it go out as MAVLINKOUT above.
             mavlink_outgoing_parser_message_handler(this,arguments);  // see mav-stuff.js
         }
-        return this;
+        
 };
 
 // ================== MAV init stuff and mav callbacks is mostly in mav-stuff.js  ==================
@@ -78,7 +87,6 @@ $(document).ready(function () {
 
     $('select').material_select();
 
-    
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ====== Handle Socket IO Messages ======
@@ -356,6 +364,9 @@ $(document).ready(function () {
         if ( states[message.sysid] == undefined ) { 
             states[message.sysid] = [];
             console.log('got first location for sysid'+message.sysid);
+
+            // a few parts of the gui need a list of sysid/s.. give them all 
+            gui_register_new_sysids(Object.keys(states)); 
         } 
 
         // set this vehical as the current, unless we already have one, so note that the below code does not
@@ -385,10 +396,12 @@ $(document).ready(function () {
                 title: "id:"+message.sysid //minimal mouse-over to start with, updated later elsewhere
             }).addTo(leafletmap);
         }
-
+        // create an empty polygon for the flightpath to be filled later..
         if (!( "flightPath" in states[message.sysid] )){
              states[message.sysid].flightPath = L.polyline([], {color: 'red'}).addTo(leafletmap);
         } 
+
+        // now actually handle this message.. store the values into the states[] 
         states[message.sysid].cs.heading = message.heading;
         states[message.sysid].cs.lat = message.lat;
         states[message.sysid].cs.lng = message.lng;
@@ -449,6 +462,14 @@ $(document).ready(function () {
         
     });
 
+    // custom reconnect message that includes an initial_sysid from the settings.json
+    socket.on('reconnecting', function (message) {
+
+        Materialize.toast('Backend disconnected....trying...', 2000);
+        
+    });
+
+
     socket.on('disconnect', function (message) {
 
         Materialize.toast('Backend DISconnected', 2000);
@@ -491,6 +512,7 @@ $(document).ready(function () {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ====== Vehicle UI Stuff ======
 ////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
     document.getElementsByName("auto_scroll_toggle")[0].addEventListener('change', function () {
         let is_checked = document.getElementsByName('auto_scroll_toggle')[0].checked;
@@ -572,9 +594,24 @@ $(document).ready(function () {
     document.getElementById("phonemenu").addEventListener("click", function () {
         $('#modal_conn_settings').modal('open');
     })
+ 
+    // define this function in the global scope for calling from the onclick() below.
+     dropdown1_clicked = function (i){
+        document.getElementById("update_connection_settings_sysid").value = i; // inside the 'connection settings' dialog box
+        document.getElementById("sysid").innerHTML = i; // displayed on the 'sysid' span on the 'aircraft id:' button 
+    }
 
+    function gui_register_new_sysids(sysid_list){
+        // populate 'dropdown1' in top-right of screen
+        var h = '';  
+        for (i of sysid_list) {
+                h = h.concat('<li><a href="#!" onclick="dropdown1_clicked(',i,')">SysId:',i,'</a></li>');
 
+        }
+        document.getElementById('dropdown1').innerHTML = h;  
 
+        // todo any other places the gui needs to display a list of sysids, or per-vehicle things ?
+    }
 
     function updateMapLocation(current_vehicle) {
         states[current_vehicle].locationHistory.unshift([states[current_vehicle].cs.lat, states[current_vehicle].cs.lng]);
@@ -603,6 +640,7 @@ $(document).ready(function () {
         if ((initial_sysid == "" ) || (initial_sysid == -1 ) || (initial_sysid == 0 )) { 
             initial_sysid = current_vehicle;
             document.getElementById("update_connection_settings_sysid").value = initial_sysid;
+            document.getElementById("sysid").innerHTML = initial_sysid;
             } 
         if ( current_vehicle == initial_sysid ) { 
             leafletmap.setView(states[current_vehicle].cs.location);
