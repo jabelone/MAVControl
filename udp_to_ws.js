@@ -29,8 +29,8 @@ offset = 0;
 var logger = null;//console; //winston.createLogger({transports:[new(winston.transports.File)({ filename:'mavlink.dev.log'})]});
 
 
-webserver.listen(3000+offset, function(){
-  console.log("Express webserver listening on port 3000.  goto: http://127.0.0.1:3000");
+webserver.listen(5000+offset, function(){
+  console.log(`Express webserver listening on port ${5000+offset}.  goto: http://127.0.0.1:${5000+offset}`);
 });
 
 // webserver anything under /static from /static
