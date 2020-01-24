@@ -377,13 +377,12 @@ $(document).ready(function () {
         states[message.sysid].cs.altitude_agl = parseFloat(message.altitude_agl).toFixed(2);
 
 
+        // create an initial marker with very little going on, in a default place.
         if  (!( "planeMarker" in states[message.sysid] )){
             x = message.sysid%7; // pick a color from the 7 avail
             states[message.sysid].planeMarker = L.marker(defaultMapLocation, {
                 icon: iconlist[x], rotationOrigin: "center center",
-                //title: "id:"+message.sysid
-                title: String(Math.round(states[message.sysid].cs.altitude_agl))+"m | "
-                      +String(Math.round(states[message.sysid].cs.airspeed))+"m/s | id: "+message.sysid
+                title: "id:"+message.sysid //minimal mouse-over to start with, updated later elsewhere
             }).addTo(leafletmap);
         }
 
@@ -589,6 +588,14 @@ $(document).ready(function () {
 
         // Set our location
         states[current_vehicle].planeMarker.setLatLng(states[current_vehicle].cs.location);
+
+        //  update the little bubble of text on the on-mouse-over of the planemarker.
+        states[current_vehicle].planeMarker.options.title = 
+                        String(Math.round(states[current_vehicle].cs.altitude_agl))+"m | "
+                      +String(Math.round(states[current_vehicle].cs.airspeed))+"m/s | id: "+current_vehicle;
+        // a remove-and-add is required to get the options.title to re-render the planemarker
+        states[current_vehicle].planeMarker.remove();
+        states[current_vehicle].planeMarker.addTo(leafletmap);
 
         // which plane is the center of our focus etc? 
         initial_sysid = document.getElementById("update_connection_settings_sysid").value;
