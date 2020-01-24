@@ -140,6 +140,7 @@ def vfr_hud(packet):
 def attitude(packet):
 
     if cs.current_vehicle:
+        # convert roll pitch yaw degrees-to-radians and limit to 2 decimal places of accuracy
         cs.states[cs.current_vehicle].attitude.pitch = round(packet.pitch*180/math.pi, 2)
         cs.states[cs.current_vehicle].attitude.roll = round(packet.roll*180/math.pi, 2)
         cs.states[cs.current_vehicle].attitude.yaw = round(packet.yaw*180/math.pi, 2)

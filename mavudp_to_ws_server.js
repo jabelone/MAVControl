@@ -552,10 +552,12 @@ var att_handler = function(message) {
     // if we already have the vehicle in the collection: 
     if ( current_vehicle) {  
         //console.log(`Got a ATTITUDE message from ${udpserver.last_ip_address.address}:${udpserver.last_ip_address.port} `);
+
+       // radians * 180.0 / 3.14159 = Angle_in_degrees 
         current_vehicle.set( {
-            pitch: message.pitch,
-            roll: message.roll,
-            yaw: message.yaw,
+            pitch: message.pitch * 180.0 / 3.14159,
+            roll: message.roll * 180.0 / 3.14159,
+            yaw: message.yaw * 180.0 / 3.14159,
             pitchspeed: message.pitchspeed,
             rollspeed: message.rollspeed,
             yawspeed: message.yawspeed
