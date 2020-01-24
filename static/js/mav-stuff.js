@@ -148,7 +148,17 @@ var mavlink_incoming_parser_message_handler = function(message,ip,port,mavlinkty
     if (  ['HEARTBEAT' ].includes(message.name) ) {
         // this matches the json format sent by the non-mavlink backend server/s
 
-       // todo if needed
+       // todo more if needed
+
+        // this ensures the GUI render/s the current vehicle mode on-screen 
+        // arduplane uses heartbeatpacket.custom_mode to index into mode_mapping_apm - TODO copter uses acm
+        var _mode = mode_mapping_apm[message.custom_mode];
+        var vehicle_type = 'Plane'; // todo handle non-plane things too.
+        //this matches the json format sent by the non-mavlink backend server/s:
+        msghandler.emit('mode', { "sysid": message.header.srcSystem,
+                            "mode": _mode,
+                            "type": vehicle_type });
+
     }
  
     // add more MAVLINK -> to -> json handlers here for in-browser parsing.
@@ -206,6 +216,7 @@ var mode_mapping_acm = {
     23 : 'FOLLOW',
 };
 
+// given a human-readable mode name like 'AUTO' return the mode-num for a custom_mode packet.
 function mode_mapping_inv() {
 
     var result = {};   // empty object to contain reversed key/value paris

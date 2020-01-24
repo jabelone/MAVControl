@@ -210,7 +210,7 @@ $(document).ready(function () {
         // store airspeed with incoming aircraft
         states[message.sysid].cs.airspeed = parseFloat(message.airspeed).toFixed(2); 
         // display airspeed in HUD of 'current' aircraft ( possibly different):
-        document.getElementById('floating-scale-pointer-speed').innerText = String(Math.round(states[current_vehicle].cs.airspeed)) + " m/s";
+        document.getElementById('floating-scale-pointer-speed').innerText = String(Math.round(states[current_vehicle].cs.airspeed)) + "m/s";
         // others:
         states[message.sysid].cs.groundspeed = parseFloat(message.groundspeed).toFixed(2);
         //states[message.sysid].cs.heading = parseFloat(message.heading).toFixed(2); skip heading, it's in 'location' packet
@@ -257,11 +257,12 @@ $(document).ready(function () {
     msghandler.on('mode', function (message) {
         if ( ! states[message.sysid] ) return; // don't accept this type of data till we know basic state this sysid
 
-        states[message.sysid].cs.mode = message.mode;
+        // store data from packet
+        states[message.sysid].cs.mode = message.mode; // states already has human-readable mode, so just display it.
+        states[message.sysid].cs.vehicle_type = message.vehicle_type;
+        // redraw current_vehicle that's onscreen
         document.getElementById('status_mode').innerText = states[current_vehicle].cs.mode;
         document.getElementById('floating-mode-text').innerText = states[current_vehicle].cs.mode;
-
-        states[current_vehicle].cs.vehicle_type = message.vehicle_type;
 
     })
 
@@ -357,10 +358,11 @@ $(document).ready(function () {
             console.log('got first location for sysid'+message.sysid);
         } 
 
-        // set this vehical as the current, unless we already have one:
+        // set this vehical as the current, unless we already have one, so note that the below code does not
+        //   rely on 'current_vehicle' to be equal to the incoming 'message.sysid', which is better data.
         if (! current_vehicle) { current_vehicle = message.sysid; } 
 
-        // if we don't already have .cs .cs.attitude, .locationHistory, planemarker, etc for this aircraft, create them:
+        // if we don't already have .cs .cs.attitude, .locationHistory, planemarker, etc for this aircraft, create them, empty:
         if  (!( "attitude" in states[message.sysid] )){
             states[message.sysid].attitude = {roll: 0, pitch: 0, yaw: 0};
         }
@@ -370,13 +372,18 @@ $(document).ready(function () {
         if  (!( "locationHistory" in states[message.sysid] )){
             states[message.sysid].locationHistory = [];
         }
+
+        // handle alt data from the incoming packet now, store it in the states[] area:
+        states[message.sysid].cs.altitude_agl = parseFloat(message.altitude_agl).toFixed(2);
+
+
         if  (!( "planeMarker" in states[message.sysid] )){
             x = message.sysid%7; // pick a color from the 7 avail
             states[message.sysid].planeMarker = L.marker(defaultMapLocation, {
                 icon: iconlist[x], rotationOrigin: "center center",
-                title: "id:"+message.sysid
-                       //+" altagl:"+states[current_vehicle].cs.altitude_agl+
-                       //" airspeed:"+states[current_vehicle].cs.airspeed
+                //title: "id:"+message.sysid
+                title: String(Math.round(states[message.sysid].cs.altitude_agl))+"m | "
+                      +String(Math.round(states[message.sysid].cs.airspeed))+"m/s | id: "+message.sysid
             }).addTo(leafletmap);
         }
 
@@ -388,10 +395,9 @@ $(document).ready(function () {
         states[message.sysid].cs.lng = message.lng;
         states[message.sysid].cs.location = [message.lat, message.lng];
 
-        // handle alt data too:
-        states[message.sysid].cs.altitude_agl = parseFloat(message.altitude_agl).toFixed(2);
-        document.getElementById('floating-scale-pointer-altitude').innerText = String(Math.round(states[current_vehicle].cs.altitude_agl)) + " m";
-
+        // display it is the last thing we do, noting that right now we explicity re-draw this data on every packet even if its not the 
+        // HUD currently being displayed ( which is whatever current_vehicle is set to )
+        document.getElementById('floating-scale-pointer-altitude').innerText = String(Math.round(states[current_vehicle].cs.altitude_agl)) + "m";
         updateMapLocation(message.sysid);
     });
 
