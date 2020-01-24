@@ -1,9 +1,9 @@
 // this is a mavlink UDP listener for ArduPlane style vehicles which then uses a websockets enabled web server 
 // to deliver a web-based GCS that is a slightly-hacked-on version of MAVControl. 
-// incoming UDP mavlink/vehicl/sim data at 0.0.0.0:14550 is parsed to generate messages that are passed off to the MAVControl instance for
+// incoming UDP mavlink/vehicl/sim data at 0.0.0.0:14550 is parsed SERVER SIDE IN NODE.js to generate json messages that are passed off to the MAVControl instance for
 // display of the HUD and MAP etc. 
 // uses express 4 + socket.io and 'backbone.js' as a server-side Model for the Vehicle state and a group of Vehicles, and as few other dependancies as possible. 
-//  delivers most static content from public/static and socketio stuff from /socket.io and public/index.html is the main page.
+//  delivers most static content from /static and socketio stuff from /socket.io and /node_index.html is the main page.
 
 //-------------------------------------------------------------
 //
@@ -18,10 +18,19 @@ var io = require('socket.io')(webserver);
 var express = require('express'); // we use 'app' mostly, but need this too.
 
 // mavlink related stuff:
-var mavlink = require("./mav_v1.js");  // this is the autogeneraterd js mavlink library  
+var {mavlink10, MAVLink10Processor} = require("./mav_v1.js"); 
+var mavlinkParser1 = new MAVLink10Processor(logger, 11,0);
+
+var {mavlink20, MAVLink20Processor} = require("./mav_v2.js"); 
+var mavlinkParser2 = new MAVLink20Processor(logger, 11,0);
+
+
+
 var MavParams = require("./assets/mavParam.js");   // these are server-side js libraries for handling some more complicated bits of mavlink
 var MavFlightMode = require("./assets/mavFlightMode.js");
 var MavMission = require('./assets/mavMission.js');
+
+console.log(JSON.stringify(MavFlightMode));
 
 // config and backend libraries:
 var nconf = require("nconf");
@@ -44,20 +53,22 @@ offset = 0;
 var logger = null;//console; //winston.createLogger({transports:[new(winston.transports.File)({ filename:'mavlink.dev.log'})]});
 
 
-webserver.listen(3000+offset, function(){
-  console.log("Express webserver listening on port 3000.  goto: http://127.0.0.1:3000");
+webserver.listen(5000+offset, function(){
+  console.log(`Express webserver listening on port ${5000+offset}.  goto: http://127.0.0.1:${5000+offset}`);
 });
 
-// webserver anything under /static from /public/static
-app.use('/static', express.static('public/static'))
+// webserver anything under /static from /static
+app.use('/static', express.static('static'))
 
 //this is a good thing, generally.
 app.get('/favicon.ico', function (req, res) {
-    res.sendFile(__dirname + '/public/static/favicon.ico',{headers: {'Content-Type': 'image/vnd.microsoft.icon'}});
+    res.sendFile(__dirname + '/static/favicon.ico',{headers: {'Content-Type': 'image/vnd.microsoft.icon'}});
 });
-// this is the most important thing.
+// this is the most important thing. note we're using the non-template (true html) version of the index.html file as we don't
+// implement the same templating library that the python implementation uses, 
+// but template/index.html and node_index.html are very similar otherwise.
 app.get('/', function (req, res) {
-  res.sendFile(__dirname + '/public/index.html');
+  res.sendFile(__dirname + '/node_index.html');
 
 });
 
@@ -76,9 +87,14 @@ IONameSpace = '/MAVControl';
 const nsp = io.of(IONameSpace);
 
 // Establish parser
-var mavlinkParser = new MAVLink(logger, 11,0);
+//var mavlinkParser1 = new MAVLinkProcessor(logger, 11,0);
+//var mavlinkParser2 = new MAVLinkProcessor2(logger, 11,0);
 // Allow the client to assign a connection handler to this object
-mavlinkParser.setConnection = function(connection) {
+mavlinkParser1.setConnection = function(connection) {
+    this.file = connection;
+}
+
+mavlinkParser2.setConnection = function(connection) {
     this.file = connection;
 }
 
@@ -87,11 +103,8 @@ const dgram = require('dgram');
 const udpserver = dgram.createSocket('udp4');
 
 
-// tell mavlink library where to write() to? 
-mavlinkParser.file = new Object();
-mavlinkParser.file.write  = function(msg) {
-    //console.log('mavlink write not impl yet - todo');
-    
+// udp writer function works same on both mavlink1 and 2
+var udpwriter = function(msg) {
     //console.log(typeof msg);    
     //console.log(msg);
 
@@ -112,6 +125,14 @@ mavlinkParser.file.write  = function(msg) {
 
 }
 
+// tell mavlink1 library where to write() to? 
+mavlinkParser1.file = new Object();
+mavlinkParser1.file.write = udpwriter;
+
+// tell mavlink2 library where to write() to? 
+mavlinkParser2.file = new Object();
+mavlinkParser2.file.write  = udpwriter;
+
 
 //-------------------------------------------------------------
 //
@@ -130,29 +151,40 @@ udpserver.on('message', (msg, rinfo) => {
     //console.log(rinfo);
 
     // first time thru:
-    if (udpserver.last_ip_address == null ) { udpserver.last_ip_address = rinfo; udpserver.last_ip_address.port = 0; } 
+    if (udpserver.last_ip_address == null ) { udpserver.last_ip_address = rinfo; udpserver.last_ip_address.port = 0;  udpserver.last_mavlink_type = 0;} 
 
     // is this a repeat packet from same src and port , if so don't display msg again
     if (( rinfo.address != udpserver.last_ip_address.address ) || ( rinfo.port != udpserver.last_ip_address.port ))  { 
       //console.log(`server got: msg from ${rinfo.address}:${rinfo.port}`);
     }
-    // record last ip address we saw.
-    udpserver.last_ip_address = rinfo
 
     var array_of_chars = Uint8Array.from(msg) // from Buffer to byte array
+
+    var mavlink_type = 0;
+
+    if (array_of_chars[0] == 253 ) { 
+    mavlinkParser2.parseBuffer(array_of_chars);
+    mavlink_type = 2;
+    } 
+   if (array_of_chars[0] == 254 ) { 
+    mavlinkParser1.parseBuffer(array_of_chars);
+    mavlink_type = 1;
+    } 
+ 
+    // record last ip address we saw, and if this specific device is mavlink1 or mavlink2
+    udpserver.last_ip_address = rinfo;
+    udpserver.last_mavlink_type = mavlink_type;
+
+
 
     //console.log(msg);    
     //console.log(array_of_chars);
 
-    if (array_of_chars[0] == 253 ) { 
-    console.log(`ERROR: seems like a MAVLINK2 packet, unsupported, need to do this in mavproxy: "param set serial0_protocol 1" .`);
-    } 
     
-    mavlinkParser.parseBuffer(array_of_chars);
 });
 
 // Attach an event handler for any valid MAVLink message
-mavlinkParser.on('message', function(message) {
+var generic_message_handler = function(message) {
 
     // console.log all the uncommon message types we DONT list here. 
     if ( ! ['GPS_RAW_INT', 'VFR_HUD', 'ATTITUDE', 'SYS_STATUS', 'GLOBAL_POSITION_INT', 'HEARTBEAT','VIBRATION',
@@ -164,7 +196,7 @@ mavlinkParser.on('message', function(message) {
             'NAV_CONTROLLER_OUTPUT', 'STATUSTEXT' , 'COMMAND_ACK' , 
             'MISSION_ITEM', 'MISSION_ITEM_INT','MISSION_COUNT','MISSION_REQUEST', 'MISSION_ACK',
             'AIRSPEED_AUTOCAL', 'MISSION_ITEM_REACHED' , 'STAT_FLTTIME' ,'AUTOPILOT_VERSION' ,
-             'FENCE_STATUS'   ].includes(message.name) ) { 
+             'FENCE_STATUS' , 'AOA_SSA' , 'GPS_GLOBAL_ORIGIN',  ].includes(message.name) ) { 
             
 	console.log(message);
     } 
@@ -219,45 +251,56 @@ mavlinkParser.on('message', function(message) {
         console.log(`TIME IN AIR:  ${mins}min:${secs}secs `);
     }
 
-});
+}
+
+// Attach the event handler for any valid MAVLink message in either stream, its agnostic at this stage
+mavlinkParser1.on('message', generic_message_handler);
+mavlinkParser2.on('message', generic_message_handler);
 
 // lookup table we populate later.
 sysid_to_ip_address = {};
+sysid_to_mavlink_type = {};
 
 
 udpserver.bind(14550+offset);
 
 
 // Attach an event handler for a specific MAVLink message
-mavlinkParser.on('HEARTBEAT', function(message) {
+
+var heartbeat_handler1 = function(message) {
     //udpserver.last_ip_address object looks like this: { address: '127.0.0.1', family: 'IPv4', port: 41721, size: 17 }
 	//console.log(`Got a heartbeat message from ${udpserver.last_ip_address.address}:${udpserver.last_ip_address.port} `);
 	//console.log(message); // message is a HEARTBEAT message
 
 
-    if (  (sysid_to_ip_address[message.header.srcSystem] != null ) && ( sysid_to_ip_address[message.header.srcSystem].address == udpserver.last_ip_address.address) && 
-        ( sysid_to_ip_address[message.header.srcSystem].port == udpserver.last_ip_address.port )  )  { 
-
-    } else { 
-      console.log(`Got first heartbeat message from ${udpserver.last_ip_address.address}:${udpserver.last_ip_address.port}, not repeating this. `);
-    } 
+    if (  sysid_to_ip_address[message.header.srcSystem] == null )  {
+          console.log(`Got first heartbeat message from ${udpserver.last_ip_address.address}:${udpserver.last_ip_address.port}, not repeating this. `);
+    }
 
     //    keep a record of the sysid <-> ip address and port info on-hand for when we want to *send*.
     sysid_to_ip_address[message.header.srcSystem] = udpserver.last_ip_address;
+    sysid_to_mavlink_type[message.header.srcSystem] = udpserver.last_mavlink_type;
 
     //console.log(sysid_to_ip_address); 
-});
+}
+mavlinkParser1.on('HEARTBEAT', heartbeat_handler1);
+mavlinkParser2.on('HEARTBEAT', heartbeat_handler1);
+
 
 var sysid = 12; // lets assume just one sysid for now.
 
 // looks for flight-mode changes on this specific sysid only
 var mavFlightModes = [];
-mavFlightModes.push(new MavFlightMode(mavlink, mavlinkParser, null, logger,sysid));
+// no idea if two if these will work togehter...
+
+mavFlightModes.push(new MavFlightMode(mavlink10, mavlinkParser1, null, logger,sysid));
+mavFlightModes.push(new MavFlightMode(mavlink20, mavlinkParser2, null, logger,sysid));
 
 
 // MavParams are for handling loading parameters
 // Just hacking/playing code for now
-var mavParams = new MavParams(mavlinkParser,logger);
+var mavParams = new MavParams(mavlinkParser1,logger);
+var mavParams2 = new MavParams(mavlinkParser2,logger);
 
 
 //-------------------------------------------------------------
@@ -384,14 +427,19 @@ In simple terms, it adds properties from other objects (source) on to a target o
 //
 //-------------------------------------------------------------
 
-mavlinkParser.on('HEARTBEAT', function(message) {
+
+// the '2' in this name is not a mavlink2 thing, it's becasue we've got two different hooks on the 'heartbeat' right now for convenience.
+// we can surely merge them as some point.
+var heartbeat_handler2 =  function(message) {
     //console.log(`Got a HEARTBEAT message from ${udpserver.last_ip_address.address}:${udpserver.last_ip_address.port} `);
     //console.log(message);
     //console.log(`got HEARTBEAT with ID: ${message.header.srcSystem}`);
     var tmp_sysid = message.header.srcSystem;
-    var current_vehicle = AllVehicles.get(tmp_sysid); 
+    var current_vehicle = AllVehicles.get(tmp_sysid); // returns the entire vehicle object
     // if we already have the vehicle in the collection: 
     if ( current_vehicle) {  
+        //console.log("------------------------------------");
+        //console.log(current_vehicle.get('id'));
         current_vehicle.set( {
            // type: message.type,
           //  autopilot: message.autopilot,
@@ -403,6 +451,7 @@ mavlinkParser.on('HEARTBEAT', function(message) {
         });
 
         var vehicle_type = 'Plane'; // todo state.vehicle_type
+        // mode is either undefined or a human-readable mode string
         io.of(IONameSpace).emit('mode', { "sysid": current_vehicle.get('id'), 
                             "mode": current_vehicle.get('mode'),
                             "type": vehicle_type });
@@ -416,28 +465,44 @@ mavlinkParser.on('HEARTBEAT', function(message) {
         //console.log("ADD:"+JSON.stringify(AllVehicles));
 
         // assemble a new MavFlightMode hook to watch for this sysid:
-        mavFlightModes.push(new MavFlightMode(mavlink, mavlinkParser, null, logger,tmp_sysid));
+        mavFlightModes.push(new MavFlightMode(mavlink10, mavlinkParser1, null, logger,tmp_sysid));
+        // todo
+        mavFlightModes.push(new MavFlightMode(mavlink20, mavlinkParser2, null, logger,tmp_sysid));
+
+
 
         // re-hook all the MavFlightMode objects to their respective events, since we just added a new one.
         mavFlightModes.forEach(  function(m) {
             m.removeAllListeners('change');
+            //console.log("change hook mavFlightModes.length"+mavFlightModes.length);
+
             // this event is generated locally by mavFlightMode.js, and it passed the entire 'state' AND sysid as params
             m.on('change', function(state,sysid) {
                 console.log(`----------Got a MODE-CHANGE message from ${udpserver.last_ip_address.address}:${udpserver.last_ip_address.port} `);
                 console.log(`... with armed-state: ${state.armed} and sysid: ${sysid} and mode: ${state.mode}`);
 
-                var current_vehicle = AllVehicles.get(sysid); 
-                if ( current_vehicle) {  
-                    current_vehicle.set( m.getState());  // or 'state' is equiv, hopefuly
+                // change the mode in the state subsystem to match this, but only if its changed.
+                var current_vehicle = AllVehicles.get(sysid);  
+                if (current_vehicle.get('mode') != state.mode ) {
+                    current_vehicle.set( { 'mode': state.mode});
                 }
+                // old way, not sure it worked in all cases.
+                //if ( current_vehicle) {  
+                //    current_vehicle.set( m.getState());  // or 'state' is equiv, hopefuly
+                //}
 
             });
         });
     }
 
-});
+}
 
-mavlinkParser.on('GLOBAL_POSITION_INT', function(message) {
+
+mavlinkParser1.on('HEARTBEAT', heartbeat_handler2);
+mavlinkParser2.on('HEARTBEAT', heartbeat_handler2);
+
+
+var gpi_handler = function(message) {
     var current_vehicle = AllVehicles.get(message.header.srcSystem); 
     // if we already have the vehicle in the collection: 
     if ( current_vehicle) {  
@@ -460,9 +525,14 @@ mavlinkParser.on('GLOBAL_POSITION_INT', function(message) {
                                     "heading": current_vehicle.get('hdg'),
                                     "altitude_agl": current_vehicle.get('relative_alt')});
     }
-});
+}
+mavlinkParser1.on('GLOBAL_POSITION_INT', gpi_handler);
+mavlinkParser2.on('GLOBAL_POSITION_INT', gpi_handler);
 
-mavlinkParser.on('SYS_STATUS', function(message) {
+
+
+
+var sysstatus_handler = function(message) {
     var current_vehicle = AllVehicles.get(message.header.srcSystem); 
     // if we already have the vehicle in the collection: 
     if ( current_vehicle) {  
@@ -483,17 +553,23 @@ mavlinkParser.on('SYS_STATUS', function(message) {
                                     "drop_rate_comm": current_vehicle.get('drop_rate_comm'),
                                     "errors_comm": current_vehicle.get('errors_comm')});
     }
-});
+}
+mavlinkParser1.on('SYS_STATUS', sysstatus_handler);
+mavlinkParser2.on('SYS_STATUS', sysstatus_handler);
 
-mavlinkParser.on('ATTITUDE', function(message) {
+
+
+var att_handler = function(message) {
     var current_vehicle = AllVehicles.get(message.header.srcSystem); 
     // if we already have the vehicle in the collection: 
     if ( current_vehicle) {  
         //console.log(`Got a ATTITUDE message from ${udpserver.last_ip_address.address}:${udpserver.last_ip_address.port} `);
+
+       // radians * 180.0 / 3.14159 = Angle_in_degrees 
         current_vehicle.set( {
-            pitch: message.pitch,
-            roll: message.roll,
-            yaw: message.yaw,
+            pitch: message.pitch * 180.0 / 3.14159,
+            roll: message.roll * 180.0 / 3.14159,
+            yaw: message.yaw * 180.0 / 3.14159,
             pitchspeed: message.pitchspeed,
             rollspeed: message.rollspeed,
             yawspeed: message.yawspeed
@@ -505,9 +581,12 @@ mavlinkParser.on('ATTITUDE', function(message) {
                                       'roll': current_vehicle.get('roll'), 
                                       'yaw': current_vehicle.get('yaw')} );
     }
-});
+}
+mavlinkParser1.on('ATTITUDE', att_handler);
+mavlinkParser2.on('ATTITUDE', att_handler);
 
-mavlinkParser.on('VFR_HUD', function(message) {
+
+var vfrhud_handler = function(message) {
     var current_vehicle = AllVehicles.get(message.header.srcSystem); 
     // if we already have the vehicle in the collection: 
     if ( current_vehicle) {  
@@ -529,9 +608,12 @@ mavlinkParser.on('VFR_HUD', function(message) {
                                     'climb': current_vehicle.get('climb'),
                                     'ap_type': "ArduPilot" }); // todo calculate ap_type
     }
-});
+}
+mavlinkParser1.on('VFR_HUD', vfrhud_handler);
+mavlinkParser2.on('VFR_HUD', vfrhud_handler);
 
-mavlinkParser.on('GPS_RAW_INT', function(message) {
+
+var gpsrawint_handler = function(message) {
     var current_vehicle = AllVehicles.get(message.header.srcSystem); 
     // if we already have the vehicle in the collection: 
     if ( current_vehicle) {  
@@ -557,7 +639,9 @@ mavlinkParser.on('GPS_RAW_INT', function(message) {
                                     "satellites_visible": current_vehicle.get('satellites_visible'),
                                     "cog": current_vehicle.get('cog')});
     }
-});
+}
+mavlinkParser1.on('GPS_RAW_INT', gpsrawint_handler);
+mavlinkParser2.on('GPS_RAW_INT', gpsrawint_handler);
 
 //-------------------------------------------------------------
 //
@@ -590,6 +674,35 @@ function float(thing) {
 //
 //-------------------------------------------------------------
 
+function decide_which_mavlink_obj_and_return_it(id){
+        var mavlink = null;
+        switch (sysid_to_mavlink_type[id]) 
+        {
+            case 1:
+                return mavlink10;
+                break;
+            case 2:
+                return mavlink20;
+                break;
+            default:
+             console.log("ERROR, vehicle does not identify as MAVlINK1 or mAVLINK2!!!");
+        }
+}
+function decide_which_mavlink_parser_and_return_it(id){
+        var mavlink = null;
+        switch (sysid_to_mavlink_type[id]) 
+        {
+            case 1:
+                return mavlinkParser1;
+                break;
+            case 2:
+                return mavlinkParser2;
+                break;
+            default:
+             console.log("ERROR, vehicle does not identify as MAVlINK1 or mAVLINK2!!!");
+        }
+}
+
 nsp.on('connection', function(socket) {
 
     io.of(IONameSpace).emit('news', { hello: 'Welcome2'});
@@ -608,23 +721,29 @@ nsp.on('connection', function(socket) {
 
     // websocket messages from the browser-GCS to us: 
 
-    socket.on('arm', function(id){
-        var target_system = id, target_component = 0, command = mavlink.MAV_CMD_COMPONENT_ARM_DISARM, confirmation = 0, 
+    socket.on('arm', function(sysid){
+        var m = decide_which_mavlink_obj_and_return_it(sysid);  
+        var mp = decide_which_mavlink_parser_and_return_it(sysid);
+
+        var target_system = sysid, target_component = 0, command = m.MAV_CMD_COMPONENT_ARM_DISARM, confirmation = 0, 
             param1 = 1, param2 = 0, param3 = 0, param4 = 0, param5 = 0, param6 = 0, param7 = 0;
         // param1 is 1 to indicate arm
-        var command_long = new mavlink.messages.command_long(target_system, target_component, command, confirmation, 
+        var command_long = new m.messages.command_long(target_system, target_component, command, confirmation, 
                                                          param1, param2, param3, param4, param5, param6, param7)
-        mavlinkParser.send(command_long);
-        console.log("arm sysid:"+id);
+        mp.send(command_long);
+        console.log("arm sysid:"+sysid);
       });
 
     socket.on('disarm', function(sysid){
-        var target_system = sysid, target_component = 0, command = mavlink.MAV_CMD_COMPONENT_ARM_DISARM, confirmation = 0, 
+        var m = decide_which_mavlink_obj_and_return_it(sysid);  
+        var mp = decide_which_mavlink_parser_and_return_it(sysid);
+
+        var target_system = sysid, target_component = 0, command = m.MAV_CMD_COMPONENT_ARM_DISARM, confirmation = 0, 
             param1 = 0, param2 = 0, param3 = 0, param4 = 0, param5 = 0, param6 = 0, param7 = 0;
         // param1 is 0 to indicate disarm
-        var command_long = new mavlink.messages.command_long(target_system, target_component, command, confirmation, 
+        var command_long = new m.messages.command_long(target_system, target_component, command, confirmation, 
                                                          param1, param2, param3, param4, param5, param6, param7)
-        mavlinkParser.send(command_long);
+        mp.send(command_long);
         console.log("arm sysid:"+sysid);
       });
 
@@ -634,29 +753,36 @@ nsp.on('connection', function(socket) {
         else if (speed_type == "groundspeed")
             speed_type = 1;
 
-        var target_system = sysid, target_component = 0, command = mavlink.MAV_CMD_DO_CHANGE_SPEED, confirmation = 0, 
+        var m = decide_which_mavlink_obj_and_return_it(sysid);  
+        var mp = decide_which_mavlink_parser_and_return_it(sysid);
+
+        var target_system = sysid, target_component = 0, command = m.MAV_CMD_DO_CHANGE_SPEED, confirmation = 0, 
             param1 = float(speed_type), param2 = float(speed), param3 = float(throttle), 
             // param4 is absolute or relative [0,1]
             param4 = 0, 
             param5 = 0, param6 = 0, param7 = 0;
-        var command_long = new mavlink.messages.command_long(target_system, target_component, command, confirmation, 
+        var command_long = new m.messages.command_long(target_system, target_component, command, confirmation, 
                                                          param1, param2, param3, param4, param5, param6, param7)
-        mavlinkParser.send(command_long);
+        mp.send(command_long);
         console.log(`do_change_speed sysid: ${sysid} to speed: ${speed}`);
     });
 
     socket.on('do_change_altitude',  function(sysid,alt) { 
+        var m = decide_which_mavlink_obj_and_return_it(sysid);  
+        var mp = decide_which_mavlink_parser_and_return_it(sysid);
 
-        var target_system = sysid, target_component = 0, command = mavlink.MAV_CMD_DO_CHANGE_ALTITUDE, confirmation = 0, 
+        var target_system = sysid, target_component = 0, command = m.MAV_CMD_DO_CHANGE_ALTITUDE, confirmation = 0, 
             // param2 = 3  means MAV_FRAME_GLOBAL_RELATIVE_ALT, see https://mavlink.io/en/messages/common.html#MAV_FRAME
             param1 = float(alt), param2 = 3, param3 = 0, param4 = 0, param5 = 0, param6 = 0, param7 = 0;
-        var command_long = new mavlink.messages.command_long(target_system, target_component, command, confirmation, 
+        var command_long = new m.messages.command_long(target_system, target_component, command, confirmation, 
                                                          param1, param2, param3, param4, param5, param6, param7)
-        mavlinkParser.send(command_long);
+        mp.send(command_long);
         console.log(`do_change_altitude sysid: ${sysid} to alt: ${alt}`);
     });
 
     socket.on('do_change_mode',  function(sysid,mode) { 
+        var m = decide_which_mavlink_obj_and_return_it(sysid);  
+        var mp = decide_which_mavlink_parser_and_return_it(sysid);
 
         // any instance of a MavFlightMode will do ,so we pick the Zeroth element of the list as it's probably there.
         var mode_mapping_inv = mavFlightModes[0].mode_mapping_inv();
@@ -664,20 +790,22 @@ nsp.on('connection', function(socket) {
         modenum = mode_mapping_inv[mode];
         var target_system = sysid, /* base_mode = 217, */ custom_mode = modenum; 
 
-        set_mode_message = new mavlink.messages.set_mode(target_system, mavlink.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED, custom_mode);                        
-        mavlinkParser.send(set_mode_message);
+        set_mode_message = new m.messages.set_mode(target_system, m.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED, custom_mode);                        
+        mp.send(set_mode_message);
                      
         console.log(`do_change_mode sysid: ${sysid} to mode: ${mode}`);
+        console.log(set_mode_message);
     });
 
     // 
     socket.on('set_wp', function(sysid,seq) {  
+        var m = decide_which_mavlink_obj_and_return_it(sysid);  
+        var mp = decide_which_mavlink_parser_and_return_it(sysid);
 
         var target_system = sysid, target_component = 0;
+        var mission_set_current = new m.messages.mission_set_current(target_system, target_component, seq);
 
-        var mission_set_current = new mavlink.messages.mission_set_current(target_system, target_component, seq);
-
-        mavlinkParser.send(mission_set_current);
+        mp.send(mission_set_current);
         console.log(`set_wp/mission_set_current sysid: ${sysid} to alt: ${seq}`);
         
     });
@@ -686,8 +814,11 @@ nsp.on('connection', function(socket) {
 
     // we don't try to get missions or even run the get-mission code unless the client asks us to.
     socket.on('enableGetMission', function(sysid,msg) {
+        var m = decide_which_mavlink_obj_and_return_it(sysid);  
+        var mp = decide_which_mavlink_parser_and_return_it(sysid);
+
         console.log('ENABLING MISSION GETTING')
-        var mm= new MavMission(mavlink, mavlinkParser, null, logger);
+        var mm= new MavMission(m, mp, null, logger);
         mm.enableGetMission();
 
         // after getting mission re-load to plane as a rtest
@@ -695,8 +826,11 @@ nsp.on('connection', function(socket) {
     });
 
     socket.on('loadMission', function(sysid,msg) {
+        var m = decide_which_mavlink_obj_and_return_it(sysid);  
+        var mp = decide_which_mavlink_parser_and_return_it(sysid);
+
         console.log('LOADING MISSION')
-        var mm= new MavMission(mavlink, mavlinkParser, null, logger);
+        var mm= new MavMission(m, mp, null, logger);
         mm.loadMission();
 
      });
@@ -707,28 +841,39 @@ nsp.on('connection', function(socket) {
 /*  untested
     // setGuided
     socket.on('setGuided',function(sysid) {
+        var m = decide_which_mavlink_obj_and_return_it(sysid);  
+        var mp = decide_which_mavlink_parser_and_return_it(sysid);
+
         var target_system = sysid;
-        message = new mavlink.messages.set_mode(target_system, mavlink.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED, 4);                        
-        buffer = new Buffer(message.pack(mavlinkParser));
-        connection.write(buffer)
+        message = new m.messages.set_mode(target_system, m.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED, 4);                        
+        //buffer = new Buffer(message.pack(mp));
+        //connection.write(buffer)
+        mp.send(message);
         console.log('Set guided mode');  
     }
 
     //takeOff
     socket.on('takeOff',function(sysid) {
+        var m = decide_which_mavlink_obj_and_return_it(sysid);  
+        var mp = decide_which_mavlink_parser_and_return_it(sysid);
+
         var target_system = sysid;
-        message = new mavlink.messages.command_long(target_system, 0, mavlink.MAV_CMD_NAV_TAKEOFF, 0,  0, 0 ,0, 0, -35.363261, 149.165230, 10);                        
-        buffer = new Buffer(message.pack(mavlinkParser));
-        connection.write(buffer)
+        message = new m.messages.command_long(target_system, 0, m.MAV_CMD_NAV_TAKEOFF, 0,  0, 0 ,0, 0, -35.363261, 149.165230, 10);                        
+        //buffer = new Buffer(message.pack(mp));
+        //connection.write(buffer)
+        mp.send(message);
         console.log('Takeoff');  
     }
 
     //streamAll
     socket.on('streamAll',function(sysid) {
+        var m = decide_which_mavlink_obj_and_return_it(sysid);  
+        var mp = decide_which_mavlink_parser_and_return_it(sysid);
         var target_system = sysid;
-        message = new mavlink.messages.request_data_stream(target_system, 1, mavlink.MAV_DATA_STREAM_ALL, 1, 1);
-        buffer = new Buffer(message.pack(mavlinkParser));
-        connection.write(buffer);
+        message = new m.messages.request_data_stream(target_system, 1, m.MAV_DATA_STREAM_ALL, 1, 1);
+        //buffer = new Buffer(message.pack(mp));
+        //connection.write(buffer);
+        mp.send(message);
     }
 */
 

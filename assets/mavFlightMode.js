@@ -2,15 +2,8 @@ var util = require('util'),
 	_ = require('underscore');
 
 // Private references to shared resources
-var mavlink;
-var mavlinkParser;
 var uavConnection;
 var log;
-var sysid;
-
-// System state/status
-var state = {};
-var newState = {}; // Used to compare existing and updated state
 
 var mode_mapping_apm = {
     0 : 'MANUAL',
@@ -64,30 +57,45 @@ var mode_mapping_acm = {
 
 
 function MavFlightMode(mavlinkObject, mavlinkParserObject, uavConnectionObject, logger,passed_sysid) {
-	mavlink = mavlinkObject;
-	mavlinkParser = mavlinkParserObject;
+    console.log(JSON.stringify(mavlinkObject));
+	//mavlink = mavlinkObject;
+	//mavlinkParser = mavlinkParserObject;
 	uavConnection = uavConnectionObject;
 	log = logger;
-    sysid = passed_sysid;
-	this.attachHandlers();
-    console.log(`MavFlightMode is looking for mode/arming changes with sysid: ${sysid}`);
+    this.sysid = passed_sysid;
+    this.state = {};
+    this.newState = {};
+	this.attachHandlers(passed_sysid,mavlinkObject,mavlinkParserObject,this.state,this.newState); 
+    this.v = mavlinkObject.WIRE_PROTOCOL_VERSION; // = "1.0";
+    console.log(`MavFlightMode is looking for mode/arming changes with sysid: ${this.sysid} and mav type ${this.v}`);
 }
 
 util.inherits(MavFlightMode, events.EventEmitter);
 
-MavFlightMode.prototype.attachHandlers = function() {
-	var self = this;
-	//mavlinkParser.on('HEARTBEAT', _.debounce(function(heartbeat) {
-	mavlinkParser.on('HEARTBEAT', function(heartbeat) {
+        // in the context of this function call, 'this' is the mavlinkParserObject, either MAVLink10Processor or MAVLink20Processor
+        //  not the MavFlightMode object.
 
-        //console.log(heartbeat);
+MavFlightMode.prototype.attachHandlers = function(sysid,mavlink,mavlinkParser,state,newState) {
+        var self = this;
+        // in the context of this function call, 'this' is the mavlinkParserObject, either MAVLink10Processor or MAVLink20Processor
+        //  not the MavFlightMode object, so trying to use 'this' to access .sysid or .v etc won't work.
+        //  see console.log(this);
 
-        //console.log(`custom mode: ${heartbeat.custom_mode}`);
-        //console.log(`base mode: ${heartbeat.base_mode}`);
+        //mavlinkParser.on('HEARTBEAT', _.debounce(function(heartbeat) {
+        mavlinkParser.on('HEARTBEAT', function(heartbeat) {
 
 
         // else ignore data for other sysids than the one we are interested in.
         if ( heartbeat.header.srcSystem != sysid ) return; 
+
+        //console.log('zzzzzzzzzzzzzzzzzzzz'+heartbeat.header.srcSystem);
+        //console.log('xxxxxxxxxxxxxxxxxxxx'+sysid);
+        //console.log(`custom mode: ${heartbeat.custom_mode}`);
+        //console.log(`base mode: ${heartbeat.base_mode}`);
+
+
+        //eg state might look like... { mode: 'MANUAL', armed: false }
+
 
         // do a deep copy of the original state. 'newState = state' is not enuf here.
         newState  = JSON.parse(JSON.stringify(state));
@@ -99,7 +107,7 @@ MavFlightMode.prototype.attachHandlers = function() {
         //console.log("ardumode:"+newState.mode);
 		newState.armed = ( mavlink.MAV_MODE_FLAG_SAFETY_ARMED & heartbeat.base_mode ) ? true : false;		
 
-
+        // todo this code is a bit old, we don't use anything from this list except '.mode' and '.armed' at the moment.
         if ( ( state.auto == newState.auto) &&( state.guided == newState.guided) &&( state.stabilize == newState.stabilize) &&
              ( state.manual == newState.manual) &&( state.armed == newState.armed) &&( state.mode == newState.mode) ) {  
             // pass
@@ -117,7 +125,7 @@ MavFlightMode.prototype.attachHandlers = function() {
 };
 
 MavFlightMode.prototype.getState = function() {
-	return state;
+	return this.state;
 };
 
 MavFlightMode.prototype.mode_mapping = function() {
