@@ -327,8 +327,8 @@ $(document).ready(function () {
         // identify vehicle currently being rendered in browser...         
         let r_sysid = document.getElementById("update_connection_settings_sysid").value;
 
-        // don't update the HUD unless it's for the vehicle we are currently using:
-        if ( r_sysid != message.sysid ) { console.log("no HUD update"); return;}
+        // don't update the HUD unless it's for the vehicle we are currently using, exit early.
+        if ( r_sysid != message.sysid ) { return;}
 
         let hud_roll = -states[sysid].cs.attitude.roll;
         //let hud_roll = 0;

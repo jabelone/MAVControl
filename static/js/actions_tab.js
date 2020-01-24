@@ -51,12 +51,13 @@ $(document).ready(function () {
     function set_and_display_mode(mode) { 
         let sysid = document.getElementById("update_connection_settings_sysid").value;
         var m = decide_which_mavlink_obj_and_return_it(sysid);  
+        var mavtype = 'server-side';// for console.log display only.
         if ( m == undefined ) {
             socket.emit('do_change_mode', sysid, mode);
         } else { 
             var mp = decide_which_mavlink_parser_and_return_it(sysid);
 
-            var mavtype = sysid_to_mavlink_type[sysid]; // 1 or 2, for console.log purposes only
+            mavtype = sysid_to_mavlink_type[sysid]; // 1 or 2, for console.log purposes only
             var _mode_mapping_inv = mode_mapping_inv(); // comes from mav-stuff.js
             var mode = mode.toUpperCase();
             var modenum = _mode_mapping_inv[mode];
