@@ -128,11 +128,18 @@ var mavlink_incoming_parser_message_handler = function(message,ip,port,mavlinkty
                                     "errors_comm": message.errors_comm });
     }
     if (  ['ATTITUDE' ].includes(message.name) ) {
+
+       // and we round them to 2 decimal places so the GUI renders nicer on the STATUS tab.
+        var pitch = Math.round(message.pitch * 180.0 / 3.14159 * 100) / 100;
+        var roll = Math.round(message.roll * 180.0 / 3.14159 * 100) / 100;
+        var yaw = Math.round(message.yaw * 180.0 / 3.14159 * 100) / 100;
+
         // this matches the json format sent by the non-mavlink backend server/s
+        // which is in *degrees* and two decimal places.
         msghandler.emit('attitude', { 'sysid': message.header.srcSystem,
-                                  'pitch': message.pitch, 
-                                  'roll': message.roll, 
-                                  'yaw': message.yaw } );
+                                  'pitch': pitch, 
+                                  'roll': roll, 
+                                  'yaw': yaw } );
     }
     if (  ['GPS_RAW_INT' ].includes(message.name) ) {
         // this matches the json format sent by the non-mavlink backend server/s

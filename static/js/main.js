@@ -312,25 +312,17 @@ $(document).ready(function () {
     });
 
     // socket from server
-    socket.on('attitude', function (message) { 
-        //this block is for the backend/s in app.py and mavudp_to_ws_server.py which provide angles in degrees not radians.
-        // here we are converting it back into radians for compatability with the minimal backend (just 12 or so lines below)
-        message.pitch = message.pitch / 180.0 * 3.14159;
-        message.roll = message.roll / 180.0 * 3.14159;
-        message.yaw = message.yaw / 180.0 * 3.14159;
-
-        msghandler.emit('attitude',message); 
-    });
+    socket.on('attitude', function (message) {   msghandler.emit('attitude',message);  });
     // either socket from server, or parsed mavlink in-browser.
     msghandler.on('attitude', function (message) {
         var sysid = message.sysid;
         if ( ! states[sysid] ) return;
 
-        // this block assumes data coming into it is radians, which matches the raw mavlink packet
-        // radians * 180.0 / 3.14159 = Angle_in_degrees 
-        states[sysid].cs.attitude.pitch = message.pitch * 180.0 / 3.14159;
-        states[sysid].cs.attitude.roll = message.roll * 180.0 / 3.14159;
-        states[sysid].cs.attitude.yaw = message.yaw * 180.0 / 3.14159;
+        // this block assumes data coming into it is degrees, not radians, as degrees matches the JSON format python 
+        //  gives, but not the raw mavlink packet, which we may fix in mav-stuff.js before the data gets here.
+        states[sysid].cs.attitude.pitch = message.pitch; 
+        states[sysid].cs.attitude.roll = message.roll; 
+        states[sysid].cs.attitude.yaw = message.yaw; 
 
         // identify vehicle currently being rendered in browser...         
         let r_sysid = document.getElementById("update_connection_settings_sysid").value;
