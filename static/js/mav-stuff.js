@@ -97,8 +97,20 @@ var mavlink_incoming_parser_message_handler = function(message,ip,port,mavlinkty
     // display STATUSTEXT as simple console.log
     if (  ['STATUSTEXT' ].includes(message.name) ) {
         // drop everything including and after the first null byte.
-        message = message.text.replace(/\0.*$/g,'');
-        console.log(`STATUSTEXT: ${message}`);
+        var _message = message.text.replace(/\0.*$/g,'');
+        console.log(`STATUSTEXT: ${_message}`);
+
+        // arm and disarm confirmation messages are handled like their own events, as they are important.
+        if (_message == "Throttle armed" || _message == "Arming motors"){
+            msghandler.emit('armed', true); // no sysid in this msg.
+        }
+        if (_message == "Throttle disarmed" || _message == "Disarming motors"){
+            msghandler.emit('disarmed', true); // no sysid in this msg.
+        }
+
+        // everything else is just pushed into the 'messages' display box by this event...
+        msghandler.emit('status_text', { "sysid": message.header.srcSystem,  "text": _message});
+
     } 
 
     if (  ['VFR_HUD' ].includes(message.name) ) {
