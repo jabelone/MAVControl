@@ -115,7 +115,7 @@ $(document).ready(function () {
             mp.send(command_long,sysid);
         }
         console.log("arm sysid:"+sysid);
-        Materialize.toast("ARM sysid:"+sysid, 2000);
+        Materialize.toast("Trying to ARM sysid:"+sysid, 2000); // after vehicle confirms it, it'l have really happened
     }, false);
 
     // Disarm Button
@@ -136,7 +136,7 @@ $(document).ready(function () {
             mp.send(command_long,sysid);
         }
         console.log("disarm sysid:"+sysid);
-        Materialize.toast("DISARM sysid:"+sysid, 2000);
+        Materialize.toast("Trying to DISARM sysid:"+sysid, 2000); // after vehicle confirms it, it'l have really happened
     }, false);
 
     // Set Airspeed

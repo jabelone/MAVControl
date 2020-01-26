@@ -278,9 +278,13 @@ $(document).ready(function () {
     socket.on('armed', function (message) {  msghandler.emit('armed',message); });
     // either socket from server, or parsed mavlink in-browser.
     msghandler.on('armed', function (message) {
-        if ( ! states[message.sysid] ) return; // don't accept this type of data till we know basic state this sysid
+    // the JSON-style message recieved here is just true or false as to wether to display [ARMED] in the hud or not.
+        // we don't really care which sysid generated it at this point, so there's nothing else needed.
+        // so message = true or message = false
 
+        // we are displaying it on-screen in two places... in a toast popup
         Materialize.toast('ARMED!!', 2000);
+        // ... and in the HUD as a yellow on-screen bo for a few seconds..
         document.getElementById('floating-armed-text').style.display = "";
         document.getElementById('floating-disarmed-text').style.display = "none";
         setTimeout(function () {
@@ -292,8 +296,7 @@ $(document).ready(function () {
     socket.on('disarmed', function (message) {  msghandler.emit('disarmed',message); });
     // either socket from server, or parsed mavlink in-browser.
     msghandler.on('disarmed', function (message) {
-        if ( ! states[message.sysid] ) return; // don't accept this type of data till we know basic state this sysid
-
+        // message = true or message = false, no sysid in the mesage.
         Materialize.toast('DISARMED!!', 2000);
         document.getElementById('floating-armed-text').style.display = "none";
         document.getElementById('floating-disarmed-text').style.display = "";
