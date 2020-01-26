@@ -591,9 +591,9 @@ var att_handler = function(message) {
 
        // radians * 180.0 / 3.14159 = Angle_in_degrees 
         current_vehicle.set( {
-            pitch: message.pitch * 180.0 / 3.14159,
-            roll: message.roll * 180.0 / 3.14159,
-            yaw: message.yaw * 180.0 / 3.14159,
+            pitch: Math.round(message.pitch * 180.0 / 3.14159 *100)/100,
+            roll: Math.round(message.roll * 180.0 / 3.14159 *100)/100,
+            yaw: Math.round(message.yaw * 180.0 / 3.14159 *100)/100,
             pitchspeed: message.pitchspeed,
             rollspeed: message.rollspeed,
             yawspeed: message.yawspeed
