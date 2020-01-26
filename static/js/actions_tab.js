@@ -11,7 +11,7 @@ function decide_which_mavlink_obj_and_return_it(id){
                 return mavlink20;
                 break;
             default:
-                console.log("ERROR, vehicle does not identify as MAVlINK1 or mAVLINK2!!!");
+                console.log("vehicle does not identify as MAVlINK1 or MAVLINK2, assuming server-side-parser.");
                 return undefined;
         }
 }
@@ -26,7 +26,7 @@ function decide_which_mavlink_parser_and_return_it(id){
                 return mavlinkParser2;
                 break;
             default:
-                console.log("vehicle does not identify as MAVlINK1 or mAVLINK2, assuming server-side-parser.");
+                console.log("vehicle does not identify as MAVlINK1 or MAVLINK2, assuming server-side-parser.");
                 return undefined;
         }
 }
