@@ -3,7 +3,7 @@ let map, icon; //, flightPath;
 let maxPathHistory = 300;
 
 let states = [];
-let current_vehicle = 0; // only changed by user selection? 
+let current_vehicle = 0; // only changed by user selection, this reflects what's being drawn on-screen in the HUD and which vehicle the action/s button take effect on. etc.
 // we'll dynamically keep states[current_vehicle].xxx variables/objects populated on a 
 // per-vehicle thing, later including attitude, position, location history, etc
 
@@ -591,6 +591,7 @@ $(document).ready(function () {
      dropdown1_clicked = function (i){
         document.getElementById("update_connection_settings_sysid").value = i; // inside the 'connection settings' dialog box
         document.getElementById("sysid").innerHTML = i; // displayed on the 'sysid' span on the 'aircraft id:' button 
+        current_vehicle = i; // save it to the global we use too in places.
     }
 
     function gui_register_new_sysids(sysid_list){
