@@ -555,6 +555,33 @@ mavlinkParser1.on('SYS_STATUS', sysstatus_handler);
 mavlinkParser2.on('SYS_STATUS', sysstatus_handler);
 
 
+// there are specific status-text messages that help us know if we really are armed/disarmed , and the rest are sent as 'message' for the web-console.
+var statustext_handler = function(message) {
+    var current_vehicle = AllVehicles.get(message.header.srcSystem); 
+
+    // if we already have the vehicle in the collection: 
+    if ( current_vehicle) {  
+
+        // drop everything including and after the first null byte.
+        var _message = message.text.replace(/\0.*$/g,'');
+        console.log(`STATUSTEXT: ${_message}`);
+
+        // arm and disarm confirmation messages are handled like their own events, as they are important.
+        if (_message == "Throttle armed" || _message == "Arming motors"){
+            io.of(IONameSpace).emit('armed', true); // no sysid in this msg.
+        }
+        if (_message == "Throttle disarmed" || _message == "Disarming motors"){
+            io.of(IONameSpace).emit('disarmed', true); // no sysid in this msg.
+        }
+
+        // everything else is just pushed into the 'messages' display box by this event...
+        io.of(IONameSpace).emit('status_text', { "sysid": message.header.srcSystem,  "text": _message});
+        //io.of(IONameSpace).emit('message', { "sysid": current_vehicle.get('id'),  "message": _message});
+    }
+}
+mavlinkParser1.on('STATUSTEXT', statustext_handler);
+mavlinkParser2.on('STATUSTEXT', statustext_handler);
+
 
 var att_handler = function(message) {
     var current_vehicle = AllVehicles.get(message.header.srcSystem); 
