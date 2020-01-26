@@ -24,7 +24,46 @@ var mavlinkParser1 = new MAVLink10Processor(logger, 11,0);
 var {mavlink20, MAVLink20Processor} = require("./mav_v2.js"); 
 var mavlinkParser2 = new MAVLink20Processor(logger, 11,0);
 
+// create the output hooks for the parser/s
+// we overwrite the default send() instead of overwriting write() or using setConnection(), which don't know the ip or port info.
+// and we accept ip/port either as part of the mavmsg object, or as a sysid in the OPTIONAL 2nd parameter
+generic_mav_udp_sender = function(mavmsg,sysid) {
+    // this is really just part of the original send()
+    buf = mavmsg.pack(this);
 
+      // where we want the packet to go on the network.. we sneak it into the already parsed object that still wraps the raw bytes.
+    if (mavmsg.ip == undefined || mavmsg.port == undefined){
+        //console.log(sysid_to_ip_address);
+        //console.log(sysid);
+        mavmsg.ip = sysid_to_ip_address[sysid].ip;
+        mavmsg.port = sysid_to_ip_address[sysid].port;
+    }
+    if (mavmsg.ip == undefined || mavmsg.port == undefined){
+        console.log("unable to determine SEND ip/port from packet or sysid, sorry, discarding. sysid:${sysid}  msg:${mavmsg}");
+        return;
+    }
+    // at startup, till we've had at least one INCOMING packet, we can't send.
+    if (udpserver.have_we_recieved_anything_yet == null ) { 
+        console.log('mavlink write not possible yet,dropped packet.');
+        return;
+    } 
+
+    const b = Buffer.from(buf);// convert from array object to Buffer so we can UDP send it.
+
+    console.log(`... sending msg to: ${mavmsg.ip}:${mavmsg.port} `);
+
+    // send to the place we had comms for this sysid come from, this is the critical line change from the default send()
+    udpserver.send( b, mavmsg.port, mavmsg.ip ); 
+
+    // this is really just part of the original send()
+    this.seq = (this.seq + 1) % 256;
+    this.total_packets_sent +=1;
+    this.total_bytes_sent += buf.length;
+}
+//var origsend1 = MAVLink10Processor.prototype.send;
+MAVLink10Processor.prototype.send = generic_mav_udp_sender
+//var origsend2 = MAVLink20Processor.prototype.send;
+MAVLink20Processor.prototype.send = generic_mav_udp_sender
 
 var MavParams = require("./assets/mavParam.js");   // these are server-side js libraries for handling some more complicated bits of mavlink
 var MavFlightMode = require("./assets/mavFlightMode.js");
@@ -72,10 +111,10 @@ app.get('/', function (req, res) {
 
 });
 
-io.on('connection', function (socket) {
-  //console.log("socket connection");
-  socket.emit('news', { hello: 'world' });
-  socket.on('my other event', function (data) {
+io.on('connection', function (websocket) {
+  //console.log("websocket connection");
+  websocket.emit('news', { hello: 'world' });
+  websocket.on('my other event', function (data) {
     console.log(data);
   });
 });
@@ -86,60 +125,39 @@ IONameSpace = '/MAVControl';
 // socket.io namespace
 const nsp = io.of(IONameSpace);
 
-// Establish parser
-//var mavlinkParser1 = new MAVLinkProcessor(logger, 11,0);
-//var mavlinkParser2 = new MAVLinkProcessor2(logger, 11,0);
-// Allow the client to assign a connection handler to this object
-mavlinkParser1.setConnection = function(connection) {
-    this.file = connection;
-}
-
-mavlinkParser2.setConnection = function(connection) {
-    this.file = connection;
-}
 
 // setup UDP listener
 const dgram = require('dgram');
 const udpserver = dgram.createSocket('udp4');
 
 
-// udp writer function works same on both mavlink1 and 2
-var udpwriter = function(msg) {
-    //console.log(typeof msg);    
-    //console.log(msg);
+//-------------------------------------------------------------
+//
+//
+//
+//-------------------------------------------------------------
 
-    const b = Buffer.from(msg);// convert from array object to Buffer so we can send it.
+// after INCOMiNG MAVLINK goes thru the mavlink parser in the browser, it dispatches them to here where we save the source ip/port for each sysid
+var mavlink_ip_and_port_handler = function(message,ip,port,mavlinktype) {
 
-    // at startup, till we've had at least one INCOMING packet, we can't send.
-    if (udpserver.last_ip_address == null ) { 
-        console.log('mavlink write not possible yet,dropped packet.');
-        return;
-     } 
+    if (typeof message.header == 'undefined'){ 
+        console.log('message.header UNDEFINED, skipping packet:'); 
+        console.log(message); 
+        return; 
+    }
 
-    console.log(`... sending msg to: ${udpserver.last_ip_address.address}:${udpserver.last_ip_address.port} `);
-    //udpserver.last_ip_address.address
-    //udpserver.last_ip_address.port
+  // it's been parsed, and must be a valid mavlink packet, and thus must have a sysid available now..
+    if (  sysid_to_ip_address[message.header.srcSystem] == null )  {
+          console.log(`Got first PARSED MSG from sysid:${message.header.srcSystem} src:${ip}:${port}, mav-proto:${mavlinktype}. Not repeating this. `);
+    }
+    // by having this inside the above if() the source port and ip can't change without a page reload, having it below, it keeps uptodate.
+    sysid_to_ip_address[message.header.srcSystem] = {'ip':ip, 'port':port}; 
+    sysid_to_mavlink_type[message.header.srcSystem] =    mavlinktype; // 1 or 2
 
-    // send to the last place we had *any* comms from, not perfect, but works for one sysid case 
-    udpserver.send( b, udpserver.last_ip_address.port, udpserver.last_ip_address.address ); 
 
 }
 
-// tell mavlink1 library where to write() to? 
-mavlinkParser1.file = new Object();
-mavlinkParser1.file.write = udpwriter;
-
-// tell mavlink2 library where to write() to? 
-mavlinkParser2.file = new Object();
-mavlinkParser2.file.write  = udpwriter;
-
-
 //-------------------------------------------------------------
-//
-//
-//
-//-------------------------------------------------------------
-
 
 // hook udp listener events to actions:
 udpserver.on('error', (err) => {
@@ -147,35 +165,34 @@ udpserver.on('error', (err) => {
   webserver.close();
 });
 udpserver.on('message', (msg, rinfo) => {
-    //console.log(udpserver.last_ip_address);
+    //console.log(udpserver.have_we_recieved_anything_yet);
     //console.log(rinfo);
 
     // first time thru:
-    if (udpserver.last_ip_address == null ) { udpserver.last_ip_address = rinfo; udpserver.last_ip_address.port = 0;  udpserver.last_mavlink_type = 0;} 
-
-    // is this a repeat packet from same src and port , if so don't display msg again
-    if (( rinfo.address != udpserver.last_ip_address.address ) || ( rinfo.port != udpserver.last_ip_address.port ))  { 
-      //console.log(`server got: msg from ${rinfo.address}:${rinfo.port}`);
-    }
+    if (udpserver.have_we_recieved_anything_yet == null ) { udpserver.have_we_recieved_anything_yet = true } 
 
     var array_of_chars = Uint8Array.from(msg) // from Buffer to byte array
 
-    var mavlink_type = 0;
-
+    var packetlist = [];
+    var mavlinktype = undefined;
+    // lets try to support mav1/mav2 with dual parsers.
     if (array_of_chars[0] == 253 ) { 
-    mavlinkParser2.parseBuffer(array_of_chars);
-    mavlink_type = 2;
+        packetlist = mavlinkParser2.parseBuffer(array_of_chars); 
+        mavlinktype = 2; // known bug, at the moment we assume that if we parsed ONE packet for this sysid in the start of the stream as mav1 or mav2, then they all are
     } 
-   if (array_of_chars[0] == 254 ) { 
-    mavlinkParser1.parseBuffer(array_of_chars);
-    mavlink_type = 1;
-    } 
- 
-    // record last ip address we saw, and if this specific device is mavlink1 or mavlink2
-    udpserver.last_ip_address = rinfo;
-    udpserver.last_mavlink_type = mavlink_type;
+    if (array_of_chars[0] == 254 ) { 
+        packetlist = mavlinkParser1.parseBuffer(array_of_chars); 
+        mavlinktype = 1; 
+    }
+    // if neither, then we do nothing with the empty [] packet list anyway.
 
-
+    //parseBuffer CAN and does 'emit' messages with the parsed result, because of the 'generic' capture/s elsewhere using mavlinkParser1.on(..) 
+    // , the packets trigger a call to mavlink_ip_and_port_handler with the result, but no ip/port data would be kept through 
+    //   the 'emit()' process, so we ALSO return the array-of-chars as an array of mavlink packets, possibly 'none', [ p] single packet , or [p,p,p] packets.
+    // here's where we store the sorce ip and port with each packet we just made, AFTER the now-useless 'emit' which can't easily do this.
+    for (msg of packetlist){  
+        mavlink_ip_and_port_handler(msg,rinfo.address,rinfo.port,mavlinktype );  // [1] = ip  and [2] = port
+    }
 
     //console.log(msg);    
     //console.log(array_of_chars);
@@ -183,7 +200,9 @@ udpserver.on('message', (msg, rinfo) => {
     
 });
 
-// Attach an event handler for any valid MAVLink message
+// Attach an event handler for any valid MAVLink message - we use this mostly for unknown packet types, console.log and debug messages. 
+// the majority of specific responses to specifc messages are not handled in the 'generic' handler, but in specific message handlers for each 
+// type of message.   eg mavlinkParser1.on('HEATBEAT') is better than here, as this 'generic' block might go away at some point.
 var generic_message_handler = function(message) {
 
     // console.log all the uncommon message types we DONT list here. 
@@ -215,7 +234,8 @@ var generic_message_handler = function(message) {
 
     // display STATUSTEXT as simple console.log
     if (  ['STATUSTEXT' ].includes(message.name) ) {
-        console.log(`STATUSTEXT: ${message.text}`);
+        //console.log(`STATUSTEXT: ${message.text}`);    
+
     } 
 
     if (  ['COMMAND_ACK' ].includes(message.name) ) {
@@ -264,41 +284,16 @@ sysid_to_mavlink_type = {};
 
 udpserver.bind(14550+offset);
 
-
-// Attach an event handler for a specific MAVLink message
-
-var heartbeat_handler1 = function(message) {
-    //udpserver.last_ip_address object looks like this: { address: '127.0.0.1', family: 'IPv4', port: 41721, size: 17 }
-	//console.log(`Got a heartbeat message from ${udpserver.last_ip_address.address}:${udpserver.last_ip_address.port} `);
-	//console.log(message); // message is a HEARTBEAT message
-
-
-    if (  sysid_to_ip_address[message.header.srcSystem] == null )  {
-          console.log(`Got first heartbeat message from ${udpserver.last_ip_address.address}:${udpserver.last_ip_address.port}, not repeating this. `);
-    }
-
-    //    keep a record of the sysid <-> ip address and port info on-hand for when we want to *send*.
-    sysid_to_ip_address[message.header.srcSystem] = udpserver.last_ip_address;
-    sysid_to_mavlink_type[message.header.srcSystem] = udpserver.last_mavlink_type;
-
-    //console.log(sysid_to_ip_address); 
-}
-mavlinkParser1.on('HEARTBEAT', heartbeat_handler1);
-mavlinkParser2.on('HEARTBEAT', heartbeat_handler1);
-
-
-var sysid = 12; // lets assume just one sysid for now.
+var sysid = 12; // lets assume just one sysid to start with.
 
 // looks for flight-mode changes on this specific sysid only
 var mavFlightModes = [];
-// no idea if two if these will work togehter...
-
 mavFlightModes.push(new MavFlightMode(mavlink10, mavlinkParser1, null, logger,sysid));
 mavFlightModes.push(new MavFlightMode(mavlink20, mavlinkParser2, null, logger,sysid));
 
 
 // MavParams are for handling loading parameters
-// Just hacking/playing code for now
+// Just hacking/playing code for now, compiles but not properly tested.
 var mavParams = new MavParams(mavlinkParser1,logger);
 var mavParams2 = new MavParams(mavlinkParser2,logger);
 
@@ -430,7 +425,7 @@ In simple terms, it adds properties from other objects (source) on to a target o
 
 // the '2' in this name is not a mavlink2 thing, it's becasue we've got two different hooks on the 'heartbeat' right now for convenience.
 // we can surely merge them as some point.
-var heartbeat_handler2 =  function(message) {
+var heartbeat_handler =  function(message) {
     //console.log(`Got a HEARTBEAT message from ${udpserver.last_ip_address.address}:${udpserver.last_ip_address.port} `);
     //console.log(message);
     //console.log(`got HEARTBEAT with ID: ${message.header.srcSystem}`);
@@ -451,7 +446,10 @@ var heartbeat_handler2 =  function(message) {
         });
 
         var vehicle_type = 'Plane'; // todo state.vehicle_type
-        // mode is either undefined or a human-readable mode string
+        // mode is either undefined or a human-readable mode string like 'AUTO' or 'RTL'
+        //console.log({ "sysid": current_vehicle.get('id'), 
+        //                    "mode": current_vehicle.get('mode'),
+        //                    "type": vehicle_type });
         io.of(IONameSpace).emit('mode', { "sysid": current_vehicle.get('id'), 
                             "mode": current_vehicle.get('mode'),
                             "type": vehicle_type });
@@ -478,7 +476,7 @@ var heartbeat_handler2 =  function(message) {
 
             // this event is generated locally by mavFlightMode.js, and it passed the entire 'state' AND sysid as params
             m.on('change', function(state,sysid) {
-                console.log(`----------Got a MODE-CHANGE message from ${udpserver.last_ip_address.address}:${udpserver.last_ip_address.port} `);
+                console.log(`----------Got a MODE-CHANGE message from ${sysid_to_ip_address[sysid].ip}:${sysid_to_ip_address[sysid].port} `);
                 console.log(`... with armed-state: ${state.armed} and sysid: ${sysid} and mode: ${state.mode}`);
 
                 // change the mode in the state subsystem to match this, but only if its changed.
@@ -497,9 +495,8 @@ var heartbeat_handler2 =  function(message) {
 
 }
 
-
-mavlinkParser1.on('HEARTBEAT', heartbeat_handler2);
-mavlinkParser2.on('HEARTBEAT', heartbeat_handler2);
+mavlinkParser1.on('HEARTBEAT', heartbeat_handler);
+mavlinkParser2.on('HEARTBEAT', heartbeat_handler);
 
 
 var gpi_handler = function(message) {
@@ -703,12 +700,12 @@ function decide_which_mavlink_parser_and_return_it(id){
         }
 }
 
-nsp.on('connection', function(socket) {
+nsp.on('connection', function(websocket) {
 
     io.of(IONameSpace).emit('news', { hello: 'Welcome2'});
     console.log("Client Re/Connect:"+IONameSpace);
 
-    socket.on('my_ping', function(msg){
+    websocket.on('my_ping', function(msg){
          io.of(IONameSpace).emit('my_pong'); // this is used by the client-side to measure how long the round-trip is 
     });
 
@@ -721,7 +718,7 @@ nsp.on('connection', function(socket) {
 
     // websocket messages from the browser-GCS to us: 
 
-    socket.on('arm', function(sysid){
+    websocket.on('arm', function(sysid){
         var m = decide_which_mavlink_obj_and_return_it(sysid);  
         var mp = decide_which_mavlink_parser_and_return_it(sysid);
 
@@ -730,11 +727,11 @@ nsp.on('connection', function(socket) {
         // param1 is 1 to indicate arm
         var command_long = new m.messages.command_long(target_system, target_component, command, confirmation, 
                                                          param1, param2, param3, param4, param5, param6, param7)
-        mp.send(command_long);
+        mp.send(command_long,sysid);
         console.log("arm sysid:"+sysid);
       });
 
-    socket.on('disarm', function(sysid){
+    websocket.on('disarm', function(sysid){
         var m = decide_which_mavlink_obj_and_return_it(sysid);  
         var mp = decide_which_mavlink_parser_and_return_it(sysid);
 
@@ -743,11 +740,11 @@ nsp.on('connection', function(socket) {
         // param1 is 0 to indicate disarm
         var command_long = new m.messages.command_long(target_system, target_component, command, confirmation, 
                                                          param1, param2, param3, param4, param5, param6, param7)
-        mp.send(command_long);
-        console.log("arm sysid:"+sysid);
+        mp.send(command_long,sysid);
+        console.log("disarm sysid:"+sysid);
       });
 
-    socket.on('do_change_speed',  function(sysid,speed_type, speed, throttle) { 
+    websocket.on('do_change_speed',  function(sysid,speed_type, speed, throttle) { 
         if (speed_type == "airspeed")
             speed_type = 0;
         else if (speed_type == "groundspeed")
@@ -763,11 +760,11 @@ nsp.on('connection', function(socket) {
             param5 = 0, param6 = 0, param7 = 0;
         var command_long = new m.messages.command_long(target_system, target_component, command, confirmation, 
                                                          param1, param2, param3, param4, param5, param6, param7)
-        mp.send(command_long);
+        mp.send(command_long,sysid);
         console.log(`do_change_speed sysid: ${sysid} to speed: ${speed}`);
     });
 
-    socket.on('do_change_altitude',  function(sysid,alt) { 
+    websocket.on('do_change_altitude',  function(sysid,alt) { 
         var m = decide_which_mavlink_obj_and_return_it(sysid);  
         var mp = decide_which_mavlink_parser_and_return_it(sysid);
 
@@ -776,11 +773,11 @@ nsp.on('connection', function(socket) {
             param1 = float(alt), param2 = 3, param3 = 0, param4 = 0, param5 = 0, param6 = 0, param7 = 0;
         var command_long = new m.messages.command_long(target_system, target_component, command, confirmation, 
                                                          param1, param2, param3, param4, param5, param6, param7)
-        mp.send(command_long);
+        mp.send(command_long,sysid);
         console.log(`do_change_altitude sysid: ${sysid} to alt: ${alt}`);
     });
 
-    socket.on('do_change_mode',  function(sysid,mode) { 
+    websocket.on('do_change_mode',  function(sysid,mode) { 
         var m = decide_which_mavlink_obj_and_return_it(sysid);  
         var mp = decide_which_mavlink_parser_and_return_it(sysid);
 
@@ -791,21 +788,21 @@ nsp.on('connection', function(socket) {
         var target_system = sysid, /* base_mode = 217, */ custom_mode = modenum; 
 
         set_mode_message = new m.messages.set_mode(target_system, m.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED, custom_mode);                        
-        mp.send(set_mode_message);
+        mp.send(set_mode_message,sysid);
                      
         console.log(`do_change_mode sysid: ${sysid} to mode: ${mode}`);
         console.log(set_mode_message);
     });
 
     // 
-    socket.on('set_wp', function(sysid,seq) {  
+    websocket.on('set_wp', function(sysid,seq) {  
         var m = decide_which_mavlink_obj_and_return_it(sysid);  
         var mp = decide_which_mavlink_parser_and_return_it(sysid);
 
         var target_system = sysid, target_component = 0;
         var mission_set_current = new m.messages.mission_set_current(target_system, target_component, seq);
 
-        mp.send(mission_set_current);
+        mp.send(mission_set_current,sysid);
         console.log(`set_wp/mission_set_current sysid: ${sysid} to alt: ${seq}`);
         
     });
@@ -813,7 +810,7 @@ nsp.on('connection', function(socket) {
     // TODO test these...
 
     // we don't try to get missions or even run the get-mission code unless the client asks us to.
-    socket.on('enableGetMission', function(sysid,msg) {
+    websocket.on('enableGetMission', function(sysid,msg) {
         var m = decide_which_mavlink_obj_and_return_it(sysid);  
         var mp = decide_which_mavlink_parser_and_return_it(sysid);
 
@@ -825,7 +822,7 @@ nsp.on('connection', function(socket) {
         //everyone.now.loadMission();
     });
 
-    socket.on('loadMission', function(sysid,msg) {
+    websocket.on('loadMission', function(sysid,msg) {
         var m = decide_which_mavlink_obj_and_return_it(sysid);  
         var mp = decide_which_mavlink_parser_and_return_it(sysid);
 
@@ -840,7 +837,7 @@ nsp.on('connection', function(socket) {
 
 /*  untested
     // setGuided
-    socket.on('setGuided',function(sysid) {
+    websocket.on('setGuided',function(sysid) {
         var m = decide_which_mavlink_obj_and_return_it(sysid);  
         var mp = decide_which_mavlink_parser_and_return_it(sysid);
 
@@ -848,12 +845,12 @@ nsp.on('connection', function(socket) {
         message = new m.messages.set_mode(target_system, m.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED, 4);                        
         //buffer = new Buffer(message.pack(mp));
         //connection.write(buffer)
-        mp.send(message);
+        mp.send(message,sysid);
         console.log('Set guided mode');  
     }
 
     //takeOff
-    socket.on('takeOff',function(sysid) {
+    websocket.on('takeOff',function(sysid) {
         var m = decide_which_mavlink_obj_and_return_it(sysid);  
         var mp = decide_which_mavlink_parser_and_return_it(sysid);
 
@@ -861,19 +858,19 @@ nsp.on('connection', function(socket) {
         message = new m.messages.command_long(target_system, 0, m.MAV_CMD_NAV_TAKEOFF, 0,  0, 0 ,0, 0, -35.363261, 149.165230, 10);                        
         //buffer = new Buffer(message.pack(mp));
         //connection.write(buffer)
-        mp.send(message);
+        mp.send(message,sysid);
         console.log('Takeoff');  
     }
 
     //streamAll
-    socket.on('streamAll',function(sysid) {
+    websocket.on('streamAll',function(sysid) {
         var m = decide_which_mavlink_obj_and_return_it(sysid);  
         var mp = decide_which_mavlink_parser_and_return_it(sysid);
         var target_system = sysid;
         message = new m.messages.request_data_stream(target_system, 1, m.MAV_DATA_STREAM_ALL, 1, 1);
         //buffer = new Buffer(message.pack(mp));
         //connection.write(buffer);
-        mp.send(message);
+        mp.send(message,sysid);
     }
 */
 
