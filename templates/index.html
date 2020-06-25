@@ -43,8 +43,18 @@
         </span>
         <ul class="right hide-on-med-and-down">
             <li><a class="white-text modal-trigger" href="#modal_conn_settings">Connection Settings</a></li>
-            <li><a class="white-text modal-trigger" href="#modal_cache_maps">Cache Map</a></li>            
-            <li><a class="white-text modal-trigger" href="#modal_cache_sysid">Aircraft ID: <span id="sysid">0</span></a></li>
+            <li><a class="white-text modal-trigger" href="#modal_cache_maps">Cache Map</a></li>  
+            <!-- -----------------dropdown-immediate-start----------------------------------- -->          
+              <!-- Dropdown Trigger -->
+            <li><a class="white-text dropdown-button btn waves-effect blue waves-light z-depth-0" href="#" data-activates='dropdown1'>Aircraft ID: <span id="sysid">0</span></a></li>
+
+             <!-- Dropdown Structure -  we force map to z-index=0, so anything over that is ok here.-->
+              <ul id='dropdown1' class='dropdown-content' style="z-index:9;">
+                <li><a href="#!">test one</a></li>
+                <li><a href="#!">test two</a></li>
+                <li><a href="#!">test three</a></li>
+              </ul>
+            <!-- -----------------dropdown-immediate-end----------------------------------- -->
         </ul>
 
         <ul id="nav-mobile" class="side-nav">
@@ -100,6 +110,7 @@
                 <div class="card-content grey lighten-4">
                     <div id="actions_tab">
                         <div id="actions_row_1" class="row">
+                        <!-- -----------------dropdown-with-button-start----------------------------------- -->
                             <div class="input-field col s12 m4 l4">
                                 <select id="actions_select">
                                     <optgroup label="In Flight">
@@ -114,6 +125,9 @@
                             <div class="col s12 m4 l2">
                                 <a id="do_action" class="waves-effect blue waves-light btn">Do Action</a>
                             </div>
+                        <!-- -----------------dropdown-with-button-end----------------------------------- -->
+
+                        <!-- -----------------textfield-with-button-start----------------------------------- -->
                             <div class="col s12 m4 l2">
                                 <div class="input-field">
                                     <input placeholder="20 m/s" id="change_speed_value" type="text" class="validate">
@@ -122,9 +136,10 @@
                             <div class="col s12 m4 l4">
                                 <a id="change_speed_button" class="waves-effect blue waves-light btn">Change Speed</a>
                             </div>
-
+                        <!-- -----------------textfield-with-button-end----------------------------------- -->
                         </div>
                         <div id="actions_row_2" class="row">
+                        <!-- -----------------dropdown-with-button-start----------------------------------- -->
                             <div class="input-field col s12 m4 l4">
                                 <select id="wp_select">
                                     <!--<optgroup label="Target Waypoint"> 
@@ -136,6 +151,9 @@
                             <div class="col s12 m4 l2">
                                 <a id="set_wp" class="waves-effect blue waves-light btn">Set WP</a>
                             </div>
+                        <!-- -----------------dropdown-with-button-end----------------------------------- -->
+
+                        <!-- -----------------textfield-with-button-start----------------------------------- -->
                             <div class="col s12 m4 l2">
                                 <div class="input-field">
                                     <input placeholder="50 m" id="change_altitude_value" type="text" class="validate">
@@ -144,9 +162,10 @@
                             <div class="col s12 m4 l4">
                                 <a id="change_altitude_button" class="waves-effect blue waves-light btn">Change Alt</a>
                             </div>
-
+                        <!-- -----------------textfield-with-button-end----------------------------------- -->
                         </div>
                         <div id="actions_row_3" class="row">
+                        <!-- -----------------dropdown-with-button-start----------------------------------- -->
                             <div class="input-field col s12 m4 l4">
                                 <select id="mode_select">
                                     <optgroup label="Autonomous">
@@ -162,6 +181,9 @@
                             <div class="col s12 m4 l2">
                                 <a id="set_mode" class="waves-effect blue waves-light btn">Set Mode</a>
                             </div>
+                        <!-- -----------------dropdown-with-button-end----------------------------------- -->
+
+                        <!-- -----------------textfield-with-button-start----------------------------------- -->
                             <div class="col s12 m4 l2">
                                 <div class="input-field">
                                     <input placeholder="50 m" id="loiter_radius_value" type="number" class="validate">
@@ -171,9 +193,10 @@
                                 <a id="loiter_radius_button" class="waves-effect blue waves-light btn">Set Loiter
                                     Radius</a>
                             </div>
-
+                        <!-- -----------------textfield-with-button-end----------------------------------- -->
                         </div>
                         <div id="actions_row_4" class="row">
+                        <!-- -----------------3-button-cluster-start----------------------------------- -->
                             <div class="col s12 m4 l2">
                                 <a id="auto_button" class="waves-effect blue waves-light btn">Auto</a>
                             </div>
@@ -183,16 +206,18 @@
                             <div class="col s12 m4 l2">
                                 <a id="loiter_button" class="waves-effect blue waves-light btn">Loiter</a>
                             </div>
+                        <!-- -----------------3-button-cluster-end----------------------------------- -->
                             <div class="col s12 m4 l2">
-                                <!--<a class="waves-effect blue waves-light btn"></a>-->
+                                <!-- space/gap area <a class="waves-effect blue waves-light btn"></a>-->
                             </div>
+                        <!-- -----------------2-button-cluster-start----------------------------------- -->
                             <div class="col s12 m4 l2">
                                 <a id="arm_button" class="waves-effect orange waves-light btn">ARM</a>
                             </div>
                             <div class="col s12 m4 l2">
                                 <a id="disarm_button" class="waves-effect orange waves-light btn">DISARM</a>
                             </div>
-
+                        <!-- -----------------2-button-cluster-end----------------------------------- -->
                         </div>
                     </div>
                     <div id="gauges_tab" class="hud_tabs">
@@ -304,7 +329,8 @@
 
     <div id="map-panel" class="no-padding green darken-1" {% if allowControl == "False" %} style="width:100%"{% endif %}>
         <div id="map-row-upper" class="row center">
-            <div id="map" class="col s12 m12 l12" {% if allowControl == "False" %} style="width:100%"{% endif %}>
+             <!-- the zindex is needed so the drop-downs in the menu can pop-over it --> 
+            <div id="map" class="col s12 m12 l12" style="z-index:0; {% if allowControl == "False" %} width:100%"{% endif %}>
                 <!-- Main panel with map-->
                 <!-- The google maps API uses this div, don't put any content in it -->
             </div>
@@ -322,8 +348,8 @@
     <div class="container">
         <div class="row">
             <div class="col l3 m6 s12">
-                Made by <a id="copyright" class="white-text" target="_blank" href="https://jaimyn.com.au">Jaimyn
-                Mayer</a>
+                Made by <a id="copyright" class="white-text" target="_blank" href="https://jaimyn.com.au">Jaimyn Mayer</a>
+            <!-- with help from <a id="davidbuzz" class="white-text" target="_blank" href="https://github.com/davidbuzz/">David Buzz</a> -->
             </div>
             <div class="col l2 m4 s12">
                 <a class="white-text modal-trigger" href="#modal1">About</a>

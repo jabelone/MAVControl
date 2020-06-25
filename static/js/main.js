@@ -3,7 +3,7 @@ let map, icon; //, flightPath;
 let maxPathHistory = 300;
 
 let states = [];
-let current_vehicle = 0; // only changed by user selection? 
+let current_vehicle = 0; // only changed by user selection, this reflects what's being drawn on-screen in the HUD and which vehicle the action/s button take effect on. etc.
 // we'll dynamically keep states[current_vehicle].xxx variables/objects populated on a 
 // per-vehicle thing, later including attitude, position, location history, etc
 
@@ -278,9 +278,13 @@ $(document).ready(function () {
     socket.on('armed', function (message) {  msghandler.emit('armed',message); });
     // either socket from server, or parsed mavlink in-browser.
     msghandler.on('armed', function (message) {
-        if ( ! states[message.sysid] ) return; // don't accept this type of data till we know basic state this sysid
+    // the JSON-style message recieved here is just true or false as to wether to display [ARMED] in the hud or not.
+        // we don't really care which sysid generated it at this point, so there's nothing else needed.
+        // so message = true or message = false
 
+        // we are displaying it on-screen in two places... in a toast popup
         Materialize.toast('ARMED!!', 2000);
+        // ... and in the HUD as a yellow on-screen bo for a few seconds..
         document.getElementById('floating-armed-text').style.display = "";
         document.getElementById('floating-disarmed-text').style.display = "none";
         setTimeout(function () {
@@ -292,8 +296,7 @@ $(document).ready(function () {
     socket.on('disarmed', function (message) {  msghandler.emit('disarmed',message); });
     // either socket from server, or parsed mavlink in-browser.
     msghandler.on('disarmed', function (message) {
-        if ( ! states[message.sysid] ) return; // don't accept this type of data till we know basic state this sysid
-
+        // message = true or message = false, no sysid in the mesage.
         Materialize.toast('DISARMED!!', 2000);
         document.getElementById('floating-armed-text').style.display = "none";
         document.getElementById('floating-disarmed-text').style.display = "";
@@ -312,25 +315,17 @@ $(document).ready(function () {
     });
 
     // socket from server
-    socket.on('attitude', function (message) { 
-        //this block is for the backend/s in app.py and mavudp_to_ws_server.py which provide angles in degrees not radians.
-        // here we are converting it back into radians for compatability with the minimal backend (just 12 or so lines below)
-        message.pitch = message.pitch / 180.0 * 3.14159;
-        message.roll = message.roll / 180.0 * 3.14159;
-        message.yaw = message.yaw / 180.0 * 3.14159;
-
-        msghandler.emit('attitude',message); 
-    });
+    socket.on('attitude', function (message) {   msghandler.emit('attitude',message);  });
     // either socket from server, or parsed mavlink in-browser.
     msghandler.on('attitude', function (message) {
         var sysid = message.sysid;
         if ( ! states[sysid] ) return;
 
-        // this block assumes data coming into it is radians, which matches the raw mavlink packet
-        // radians * 180.0 / 3.14159 = Angle_in_degrees 
-        states[sysid].cs.attitude.pitch = message.pitch * 180.0 / 3.14159;
-        states[sysid].cs.attitude.roll = message.roll * 180.0 / 3.14159;
-        states[sysid].cs.attitude.yaw = message.yaw * 180.0 / 3.14159;
+        // this block assumes data coming into it is degrees, not radians, as degrees matches the JSON format python 
+        //  gives, but not the raw mavlink packet, which we may fix in mav-stuff.js before the data gets here.
+        states[sysid].cs.attitude.pitch = message.pitch; 
+        states[sysid].cs.attitude.roll = message.roll; 
+        states[sysid].cs.attitude.yaw = message.yaw; 
 
         // identify vehicle currently being rendered in browser...         
         let r_sysid = document.getElementById("update_connection_settings_sysid").value;
@@ -599,6 +594,7 @@ $(document).ready(function () {
      dropdown1_clicked = function (i){
         document.getElementById("update_connection_settings_sysid").value = i; // inside the 'connection settings' dialog box
         document.getElementById("sysid").innerHTML = i; // displayed on the 'sysid' span on the 'aircraft id:' button 
+        current_vehicle = i; // save it to the global we use too in places.
     }
 
     function gui_register_new_sysids(sysid_list){
