@@ -140,19 +140,19 @@ const udpserver = dgram.createSocket('udp4');
 // after INCOMiNG MAVLINK goes thru the mavlink parser in the browser, it dispatches them to here where we save the source ip/port for each sysid
 var mavlink_ip_and_port_handler = function(message,ip,port,mavlinktype) {
 
-    if (typeof message.header == 'undefined'){ 
-        console.log('message.header UNDEFINED, skipping packet:'); 
+    if (typeof message._header == 'undefined'){ 
+        console.log('message._header UNDEFINED, skipping packet:'); 
         console.log(message); 
         return; 
     }
 
   // it's been parsed, and must be a valid mavlink packet, and thus must have a sysid available now..
-    if (  sysid_to_ip_address[message.header.srcSystem] == null )  {
-          console.log(`Got first PARSED MSG from sysid:${message.header.srcSystem} src:${ip}:${port}, mav-proto:${mavlinktype}. Not repeating this. `);
+    if (  sysid_to_ip_address[message._header.srcSystem] == null )  {
+          console.log(`Got first PARSED MSG from sysid:${message._header.srcSystem} src:${ip}:${port}, mav-proto:${mavlinktype}. Not repeating this. `);
     }
     // by having this inside the above if() the source port and ip can't change without a page reload, having it below, it keeps uptodate.
-    sysid_to_ip_address[message.header.srcSystem] = {'ip':ip, 'port':port}; 
-    sysid_to_mavlink_type[message.header.srcSystem] =    mavlinktype; // 1 or 2
+    sysid_to_ip_address[message._header.srcSystem] = {'ip':ip, 'port':port}; 
+    sysid_to_mavlink_type[message._header.srcSystem] =    mavlinktype; // 1 or 2
 
 
 }
@@ -215,12 +215,12 @@ var generic_message_handler = function(message) {
             'NAV_CONTROLLER_OUTPUT', 'STATUSTEXT' , 'COMMAND_ACK' , 
             'MISSION_ITEM', 'MISSION_ITEM_INT','MISSION_COUNT','MISSION_REQUEST', 'MISSION_ACK',
             'AIRSPEED_AUTOCAL', 'MISSION_ITEM_REACHED' , 'STAT_FLTTIME' ,'AUTOPILOT_VERSION' ,
-             'FENCE_STATUS' , 'AOA_SSA' , 'GPS_GLOBAL_ORIGIN',  ].includes(message.name) ) { 
+             'FENCE_STATUS' , 'AOA_SSA' , 'GPS_GLOBAL_ORIGIN',  ].includes(message._name) ) { 
             
 	console.log(message);
     } 
     // log PARAM_VALUE differently to exclude common ones like where param_id starts with 'STAT_RUNTIME' etc
-    if (  ['PARAM_VALUE' ].includes(message.name) ) { 
+    if (  ['PARAM_VALUE' ].includes(message._name) ) { 
         if (  message.param_id.startsWith('STAT_RUNTIME') || 
               message.param_id.startsWith('STAT_FLTTIME')  ||
               message.param_id.startsWith('COMPASS_')  ||
@@ -233,39 +233,39 @@ var generic_message_handler = function(message) {
     }
 
     // display STATUSTEXT as simple console.log
-    if (  ['STATUSTEXT' ].includes(message.name) ) {
+    if (  ['STATUSTEXT' ].includes(message._name) ) {
         //console.log(`STATUSTEXT: ${message.text}`);    
 
     } 
 
-    if (  ['COMMAND_ACK' ].includes(message.name) ) {
+    if (  ['COMMAND_ACK' ].includes(message._name) ) {
         console.log(`COMMAND_ACK command= ${message.command} result= ${message.result} `);
     } 
 
 
-    if (  ['MISSION_ITEM' ].includes(message.name) ) {
+    if (  ['MISSION_ITEM' ].includes(message._name) ) {
        // console.log(`MISSION_ITEM command= ${message.command} x= ${message.x} y= ${message.y} z= ${message.z} `);
     } 
 
-    if (  ['MISSION_ITEM_INT' ].includes(message.name) ) {
+    if (  ['MISSION_ITEM_INT' ].includes(message._name) ) {
         console.log(`MISSION_ITEM_INT seq= ${message.seq} command= ${message.command} x= ${message.x} y= ${message.y} z= ${message.z} `);
         //console.log(message);
     } 
 
-    if (  ['MISSION_COUNT' ].includes(message.name) ) {
+    if (  ['MISSION_COUNT' ].includes(message._name) ) {
        // console.log(`MISSION_COUNT number of mission items:= ${message.count} `); moved to mavMission.js
 
     } 
 
-    if (  ['MISSION_ACK' ].includes(message.name) ) {
+    if (  ['MISSION_ACK' ].includes(message._name) ) {
         console.log(`MISSION_ACK recieved `);
     } 
 
-    if (  ['MISSION_ITEM_REACHED' ].includes(message.name) ) {
+    if (  ['MISSION_ITEM_REACHED' ].includes(message._name) ) {
         console.log(`MISSION_ITEM_REACHED recieved num:= ${message.seq} `);
     }
 
-    if (  ['PARAM_VALUE' ].includes(message.name) &&  message.param_id.startsWith('STAT_FLTTIME')){
+    if (  ['PARAM_VALUE' ].includes(message._name) &&  message.param_id.startsWith('STAT_FLTTIME')){
         mins = parseInt(message.param_value/60,10);
         secs = parseInt(message.param_value%60,10);
         console.log(`TIME IN AIR:  ${mins}min:${secs}secs `);
@@ -411,7 +411,7 @@ In simple terms, it adds properties from other objects (source) on to a target o
 
 
 // these change/s are vehicle specific events, and so are bound to a specific vehicle in the collection, not the whole collection.
-// We pull the Vehicle from the Collection by its sysid "current_vehicle = AllVehicles.get(message.header.srcSystem); "
+// We pull the Vehicle from the Collection by its sysid "current_vehicle = AllVehicles.get(message._header.srcSystem); "
 
 
 //-------------------------------------------------------------
@@ -428,8 +428,8 @@ In simple terms, it adds properties from other objects (source) on to a target o
 var heartbeat_handler =  function(message) {
     //console.log(`Got a HEARTBEAT message from ${udpserver.last_ip_address.address}:${udpserver.last_ip_address.port} `);
     //console.log(message);
-    //console.log(`got HEARTBEAT with ID: ${message.header.srcSystem}`);
-    var tmp_sysid = message.header.srcSystem;
+    //console.log(`got HEARTBEAT with ID: ${message._header.srcSystem}`);
+    var tmp_sysid = message._header.srcSystem;
     var current_vehicle = AllVehicles.get(tmp_sysid); // returns the entire vehicle object
     // if we already have the vehicle in the collection: 
     if ( current_vehicle) {  
@@ -457,7 +457,7 @@ var heartbeat_handler =  function(message) {
         //console.log("UPDATE:"+JSON.stringify(AllVehicles));
     // we only CREATE new vehicle object/s when we successfully see a HEARTBEAT from them:
     } else { 
-        var tmpVehicle = new VehicleClass({id:message.header.srcSystem});
+        var tmpVehicle = new VehicleClass({id:message._header.srcSystem});
         // put the modified temporary object back onto the collection
         AllVehicles.add(tmpVehicle, {merge: true}); // 'add' can do "update" when merge=true, in case theres 2 of them somehow.
         //console.log("ADD:"+JSON.stringify(AllVehicles));
@@ -500,7 +500,7 @@ mavlinkParser2.on('HEARTBEAT', heartbeat_handler);
 
 
 var gpi_handler = function(message) {
-    var current_vehicle = AllVehicles.get(message.header.srcSystem); 
+    var current_vehicle = AllVehicles.get(message._header.srcSystem); 
     // if we already have the vehicle in the collection: 
     if ( current_vehicle) {  
         //console.log(`Got a GLOBAL_POSITION_INT message from ${udpserver.last_ip_address.address}:${udpserver.last_ip_address.port} `);
@@ -530,7 +530,7 @@ mavlinkParser2.on('GLOBAL_POSITION_INT', gpi_handler);
 
 
 var sysstatus_handler = function(message) {
-    var current_vehicle = AllVehicles.get(message.header.srcSystem); 
+    var current_vehicle = AllVehicles.get(message._header.srcSystem); 
     // if we already have the vehicle in the collection: 
     if ( current_vehicle) {  
         //console.log(`Got a SYS_STATUS message from ${udpserver.last_ip_address.address}:${udpserver.last_ip_address.port} `);
@@ -557,7 +557,7 @@ mavlinkParser2.on('SYS_STATUS', sysstatus_handler);
 
 // there are specific status-text messages that help us know if we really are armed/disarmed , and the rest are sent as 'message' for the web-console.
 var statustext_handler = function(message) {
-    var current_vehicle = AllVehicles.get(message.header.srcSystem); 
+    var current_vehicle = AllVehicles.get(message._header.srcSystem); 
 
     // if we already have the vehicle in the collection: 
     if ( current_vehicle) {  
@@ -575,7 +575,7 @@ var statustext_handler = function(message) {
         }
 
         // everything else is just pushed into the 'messages' display box by this event...
-        io.of(IONameSpace).emit('status_text', { "sysid": message.header.srcSystem,  "text": _message});
+        io.of(IONameSpace).emit('status_text', { "sysid": message._header.srcSystem,  "text": _message});
         //io.of(IONameSpace).emit('message', { "sysid": current_vehicle.get('id'),  "message": _message});
     }
 }
@@ -584,7 +584,7 @@ mavlinkParser2.on('STATUSTEXT', statustext_handler);
 
 
 var att_handler = function(message) {
-    var current_vehicle = AllVehicles.get(message.header.srcSystem); 
+    var current_vehicle = AllVehicles.get(message._header.srcSystem); 
     // if we already have the vehicle in the collection: 
     if ( current_vehicle) {  
         //console.log(`Got a ATTITUDE message from ${udpserver.last_ip_address.address}:${udpserver.last_ip_address.port} `);
@@ -611,7 +611,7 @@ mavlinkParser2.on('ATTITUDE', att_handler);
 
 
 var vfrhud_handler = function(message) {
-    var current_vehicle = AllVehicles.get(message.header.srcSystem); 
+    var current_vehicle = AllVehicles.get(message._header.srcSystem); 
     // if we already have the vehicle in the collection: 
     if ( current_vehicle) {  
         //console.log(`Got a VFR_HUD message from ${udpserver.last_ip_address.address}:${udpserver.last_ip_address.port} `);
@@ -638,7 +638,7 @@ mavlinkParser2.on('VFR_HUD', vfrhud_handler);
 
 
 var gpsrawint_handler = function(message) {
-    var current_vehicle = AllVehicles.get(message.header.srcSystem); 
+    var current_vehicle = AllVehicles.get(message._header.srcSystem); 
     // if we already have the vehicle in the collection: 
     if ( current_vehicle) {  
         //console.log(`Got a GPS_RAW_INT message from ${udpserver.last_ip_address.address}:${udpserver.last_ip_address.port} `);

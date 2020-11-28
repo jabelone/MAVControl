@@ -86,9 +86,9 @@ MavFlightMode.prototype.attachHandlers = function(sysid,mavlink,mavlinkParser,st
 
 
         // else ignore data for other sysids than the one we are interested in.
-        if ( heartbeat.header.srcSystem != sysid ) return; 
+        if ( heartbeat._header.srcSystem != sysid ) return; 
 
-        //console.log('zzzzzzzzzzzzzzzzzzzz'+heartbeat.header.srcSystem);
+        //console.log('zzzzzzzzzzzzzzzzzzzz'+heartbeat._header.srcSystem);
         //console.log('xxxxxxxxxxxxxxxxxxxx'+sysid);
         //console.log(`custom mode: ${heartbeat.custom_mode}`);
         //console.log(`base mode: ${heartbeat.base_mode}`);
