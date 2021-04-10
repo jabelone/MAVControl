@@ -23,16 +23,29 @@ var myIcons = L.Icon.extend({
     }
 });
 
-// build icon list
-blackIcon = new myIcons({iconUrl: '/static/img/plane_black.png'}),
-greenIcon = new myIcons({iconUrl: '/static/img/plane_green.png'}),
+// build icon list for planes
+blackIcon =  new myIcons({iconUrl: '/static/img/plane_black.png'}),
+greenIcon =  new myIcons({iconUrl: '/static/img/plane_green.png'}),
 indigoIcon = new myIcons({iconUrl: '/static/img/plane_indigo.png'}),
 orangeIcon = new myIcons({iconUrl: '/static/img/plane_orange.png'}),
-blueIcon = new myIcons({iconUrl: '/static/img/plane.png'}),
+blueIcon =   new myIcons({iconUrl: '/static/img/plane.png'}),
 purpleIcon = new myIcons({iconUrl: '/static/img/plane_purple.png'}),
-redIcon = new myIcons({iconUrl: '/static/img/plane_red.png'});
+redIcon =    new myIcons({iconUrl: '/static/img/plane_red.png'});
 iconlist = [];
+
+
+// and copters
+blackIcon2 =  new myIcons({iconUrl: '/static/img/copter_black.png'}),
+greenIcon2 =  new myIcons({iconUrl: '/static/img/copter_green.png'}),
+indigoIcon2 = new myIcons({iconUrl: '/static/img/copter_indigo.png'}),
+orangeIcon2 = new myIcons({iconUrl: '/static/img/copter_orange.png'}),
+blueIcon2 =   new myIcons({iconUrl: '/static/img/copter_blue.png'}),
+purpleIcon2 = new myIcons({iconUrl: '/static/img/copter_purple.png'}),
+redIcon2 =    new myIcons({iconUrl: '/static/img/copter_red.png'});
+iconlist2 = [];
+
 iconlist.push(redIcon,blackIcon,blueIcon,greenIcon,indigoIcon,orangeIcon,purpleIcon); // so sysid0 is red, sysid1 is black, sysid2 is blue etc
+iconlist2.push(redIcon2,blackIcon2,blueIcon2,greenIcon2,indigoIcon2,orangeIcon2,purpleIcon2); // so sysid0 is red, sysid1 is black, sysid2 is blue et
 
 // redefine standard L.i to point to my L.I ( case important ) 
 L.icon = function (options) {

@@ -198,8 +198,10 @@ $(document).ready(function () {
         // we instead / ALSO returns the array-of-chars as an array of mavlink packets, possibly 'none', [ p] single packet , or [p,p,p] packets.
 
         // here's where we store the sorce ip and port with each packet we just made, AFTER the now-useless 'emit' which can't easily do this..
-        for (msg of packetlist){  
-            mavlink_incoming_parser_message_handler(msg,message[1],message[2],mavlinktype );  // [1] = ip  and [2] = port
+        if (packetlist ) {
+                for (msg of packetlist){  
+                    mavlink_incoming_parser_message_handler(msg,message[1],message[2],mavlinktype );  // [1] = ip  and [2] = port
+                }
         }
 
     });
@@ -267,7 +269,7 @@ $(document).ready(function () {
 
         // store data from packet
         states[message.sysid].cs.mode = message.mode; // states already has human-readable mode, so just display it.
-        states[message.sysid].cs.vehicle_type = message.vehicle_type;
+        states[message.sysid].cs.vehicle_type = message.type; // 'Copter' or 'Plane'
         // redraw current_vehicle that's onscreen
         document.getElementById('status_mode').innerText = states[current_vehicle].cs.mode;
         document.getElementById('floating-mode-text').innerText = states[current_vehicle].cs.mode;
@@ -383,11 +385,18 @@ $(document).ready(function () {
         states[message.sysid].cs.altitude_agl = parseFloat(message.altitude_agl).toFixed(2);
 
 
-        // create an initial marker with very little going on, in a default place.
+        // create an initial marker or 2 with very little going on, in a default place.
         if  (!( "planeMarker" in states[message.sysid] )){
             x = message.sysid%7; // pick a color from the 7 avail
             states[message.sysid].planeMarker = L.marker(defaultMapLocation, {
                 icon: iconlist[x], rotationOrigin: "center center",
+                title: "id:"+message.sysid //minimal mouse-over to start with, updated later elsewhere
+            }).addTo(leafletmap);
+        }
+       if  (!( "copterMarker" in states[message.sysid] )){
+            x = message.sysid%7; // pick a color from the 7 avail
+            states[message.sysid].copterMarker = L.marker(defaultMapLocation, {
+                icon: iconlist2[x], rotationOrigin: "center center",
                 title: "id:"+message.sysid //minimal mouse-over to start with, updated later elsewhere
             }).addTo(leafletmap);
         }
@@ -616,19 +625,36 @@ $(document).ready(function () {
             states[current_vehicle].locationHistory.pop();
         }
 
-        // Set our rotation
-        states[current_vehicle].planeMarker.setRotationAngle(states[current_vehicle].cs.heading);
-
-        // Set our location
-        states[current_vehicle].planeMarker.setLatLng(states[current_vehicle].cs.location);
-
-        //  update the little bubble of text on the on-mouse-over of the planemarker.
-        states[current_vehicle].planeMarker.options.title = 
-                        String(Math.round(states[current_vehicle].cs.altitude_agl))+"m | "
-                      +String(Math.round(states[current_vehicle].cs.airspeed))+"m/s | id: "+current_vehicle;
-        // a remove-and-add is required to get the options.title to re-render the planemarker
-        states[current_vehicle].planeMarker.remove();
-        states[current_vehicle].planeMarker.addTo(leafletmap);
+        if ( states[current_vehicle].cs.vehicle_type == "Plane") {
+                // Set our rotation
+                states[current_vehicle].planeMarker.setRotationAngle(states[current_vehicle].cs.heading);
+                // Set our location
+                states[current_vehicle].planeMarker.setLatLng(states[current_vehicle].cs.location);
+                //  update the little bubble of text on the on-mouse-over of the planemarker.
+                states[current_vehicle].planeMarker.options.title = 
+                                String(Math.round(states[current_vehicle].cs.altitude_agl))+"m | "
+                              +String(Math.round(states[current_vehicle].cs.airspeed))+"m/s | id: "+current_vehicle;
+                // a remove-and-add is required to get the options.title to re-render the planemarker
+                states[current_vehicle].planeMarker.remove();
+                states[current_vehicle].planeMarker.addTo(leafletmap);
+                // if the current vehicle type has changed from plane to copter etc, remove the other marker too
+                states[current_vehicle].copterMarker.remove();
+        }
+        if ( states[current_vehicle].cs.vehicle_type == "Copter") {
+                // Set our rotation
+                states[current_vehicle].copterMarker.setRotationAngle(states[current_vehicle].cs.heading);
+                // Set our location
+                states[current_vehicle].copterMarker.setLatLng(states[current_vehicle].cs.location);
+                //  update the little bubble of text on the on-mouse-over of the planemarker.
+                states[current_vehicle].copterMarker.options.title = 
+                                String(Math.round(states[current_vehicle].cs.altitude_agl))+"m | "
+                              +String(Math.round(states[current_vehicle].cs.airspeed))+"m/s | id: "+current_vehicle;
+                // a remove-and-add is required to get the options.title to re-render the planemarker
+                states[current_vehicle].copterMarker.remove();
+                states[current_vehicle].copterMarker.addTo(leafletmap);
+                // if the current vehicle type has changed from plane to copter etc, remove the other marker too
+                states[current_vehicle].planeMarker.remove();
+        }
 
         // which plane is the center of our focus etc? 
         initial_sysid = document.getElementById("update_connection_settings_sysid").value;
@@ -675,6 +701,7 @@ $(document).ready(function () {
             document.getElementById('status_roll').innerText = String(states[current_vehicle].cs.attitude.roll);
             document.getElementById('status_yaw').innerText = String(states[current_vehicle].cs.attitude.yaw);
             document.getElementById('status_ap_type').innerText = String(states[current_vehicle].cs.ap_type);
+            document.getElementById('status_veh_type').innerText = String(states[current_vehicle].cs.vehicle_type);
         }
         setTimeout(updateStatusTab, 500);
 
