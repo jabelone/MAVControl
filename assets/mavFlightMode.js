@@ -86,9 +86,9 @@ MavFlightMode.prototype.attachHandlers = function(sysid,mavlink,mavlinkParser,st
 
 
         // else ignore data for other sysids than the one we are interested in.
-        if ( heartbeat.header.srcSystem != sysid ) return; 
+        if ( heartbeat._header.srcSystem != sysid ) return; 
 
-        //console.log('zzzzzzzzzzzzzzzzzzzz'+heartbeat.header.srcSystem);
+        //console.log('zzzzzzzzzzzzzzzzzzzz'+heartbeat._header.srcSystem);
         //console.log('xxxxxxxxxxxxxxxxxxxx'+sysid);
         //console.log(`custom mode: ${heartbeat.custom_mode}`);
         //console.log(`base mode: ${heartbeat.base_mode}`);
@@ -102,8 +102,17 @@ MavFlightMode.prototype.attachHandlers = function(sysid,mavlink,mavlinkParser,st
 
 		// Translate the bitfields for use in the client.
 
-        // arduplane uses packet.custom_mode to index into mode_mapping_apm - TODO copter uses acm
-        newState.mode = mode_mapping_apm[heartbeat.custom_mode]; 
+
+        //copter or plane or something else?
+        if (heartbeat.type == mavlink20.MAV_TYPE_FIXED_WING ) {
+            // arduplane uses packet.custom_mode to index into mode_mapping_apm 
+            newState.mode = mode_mapping_apm[heartbeat.custom_mode]; 
+        }
+        if (heartbeat.type == mavlink20.MAV_TYPE_QUADROTOR ) {
+            // arducopter uses packet.custom_mode to index into mode_mapping_acm 
+            newState.mode = mode_mapping_acm[heartbeat.custom_mode]; 
+        }
+
         //console.log("ardumode:"+newState.mode);
 		newState.armed = ( mavlink.MAV_MODE_FLAG_SAFETY_ARMED & heartbeat.base_mode ) ? true : false;		
 

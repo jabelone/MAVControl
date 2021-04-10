@@ -82,15 +82,17 @@ var mavlink_incoming_parser_message_handler = function(message,ip,port,mavlinkty
     if ( ! [ 'VFR_HUD','GPS_RAW_INT', 'ATTITUDE', 'SYS_STATUS', 'GLOBAL_POSITION_INT', 'HEARTBEAT','VIBRATION',
             'BATTERY_STATUS', 'TERRAIN_REPORT', 'WIND', 'HWSTATUS', 'AHRS', 'AHRS2', 'AHRS3',
             'SIMSTATE', 'RC_CHANNELS','RC_CHANNELS_RAW', 'SERVO_OUTPUT_RAW', 'LOCAL_POSITION_NED',
-            'MEMINFO',  'POWER_STATUS', 'SCALED_PRESSURE', 'SCALED_IMU','SCALED_IMU2','SCALED_IMU3', 'RAW_IMU',
+            'MEMINFO',  'POWER_STATUS', 'SCALED_PRESSURE', 'SCALED_PRESSURE2','SCALED_IMU','SCALED_IMU2','SCALED_IMU3', 'RAW_IMU',
             'EKF_STATUS_REPORT', 'SYSTEM_TIME', 'MISSION_CURRENT' , 'SENSOR_OFFSETS', 
             'TIMESYNC', 'PARAM_VALUE', 'HOME_POSITION', 'POSITION_TARGET_GLOBAL_INT',
             'NAV_CONTROLLER_OUTPUT', 'STATUSTEXT' , 'COMMAND_ACK' , 
             'MISSION_ITEM', 'MISSION_ITEM_INT','MISSION_COUNT','MISSION_REQUEST', 'MISSION_ACK',
             'AIRSPEED_AUTOCAL', 'MISSION_ITEM_REACHED' , 'STAT_FLTTIME' ,'AUTOPILOT_VERSION' ,
-             'FENCE_STATUS' , 'AOA_SSA' , 'GPS_GLOBAL_ORIGIN',  ].includes(message.name) ) { 
+             'FENCE_STATUS' , 'AOA_SSA' , 'GPS_GLOBAL_ORIGIN', 'SET_MODE', 'FILE_TRANSFER_PROTOCOL',
+            'MISSION_REQUEST_INT' , 'MISSION_REQUEST_LIST',
+            'PARAM_SET', ].includes(message.name) ) { 
             
-	console.log("unhandled mavlink packet"+message);
+	console.log("unhandled mavlink packet"+JSON.stringify(message));
     } 
 
 
@@ -171,8 +173,21 @@ var mavlink_incoming_parser_message_handler = function(message,ip,port,mavlinkty
 
         // this ensures the GUI render/s the current vehicle mode on-screen 
         // arduplane uses heartbeatpacket.custom_mode to index into mode_mapping_apm - TODO copter uses acm
-        var _mode = mode_mapping_apm[message.custom_mode];
-        var vehicle_type = 'Plane'; // todo handle non-plane things too.
+        var _mode = 'unknown-mode';// = mode_mapping_apm[message.custom_mode];
+        var vehicle_type = 'unknown-type';// = 'Plane'; // todo handle non-plane things too.
+
+        //copter or plane or something else?
+        if (message.type == mavlink20.MAV_TYPE_FIXED_WING ) {
+            // arduplane uses packet.custom_mode to index into mode_mapping_apm 
+            _mode = mode_mapping_apm[message.custom_mode]; 
+            vehicle_type = 'Plane';
+        }
+        if (message.type == mavlink20.MAV_TYPE_QUADROTOR ) {
+            // arducopter uses packet.custom_mode to index into mode_mapping_acm 
+            _mode = mode_mapping_acm[message.custom_mode]; 
+            vehicle_type = 'Copter';
+        }
+
         //this matches the json format sent by the non-mavlink backend server/s:
         msghandler.emit('mode', { "sysid": message.header.srcSystem,
                             "mode": _mode,
